@@ -1,0 +1,5 @@
+{
+  "name": "Arkan Parts Desk MVP",
+  "description": "A desktop-first offline spare parts management system for auto shops in Libya, featuring RTL Arabic support and local SQLite storage.",
+  "requestFramePermissions": []
+}
