@@ -10,6 +10,56 @@ export const getSettings = (req: Request, res: Response) => {
   }
 };
 
+export const getSubscription = (req: Request, res: Response) => {
+  try {
+    const data = settingsService.getSubscription();
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+};
+
+export const extendSubscription = (req: Request, res: Response) => {
+  const days = Number(req.body?.days || 30);
+  const password = String(req.body?.password || "");
+  if (!settingsService.verifyControllerPassword(password)) {
+    res.status(403).json({ success: false, error: "كلمة مرور التحكم غير صحيحة" });
+    return;
+  }
+  const result = settingsService.extendSubscription(days);
+  if (result.success) {
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ success: false, error: result.error });
+  }
+};
+
+export const changeSubscriptionControllerPassword = (req: Request, res: Response) => {
+  const currentPassword = String(req.body?.currentPassword || "");
+  const newPassword = String(req.body?.newPassword || "");
+  const result = settingsService.changeControllerPassword(currentPassword, newPassword);
+  if (result.success) {
+    res.json({ success: true });
+  } else {
+    res.status(400).json({ success: false, error: result.error });
+  }
+};
+
+export const resetSubscription = (req: Request, res: Response) => {
+  const password = String(req.body?.password || "");
+  const days = Number(req.body?.days || 365);
+  if (!settingsService.verifyControllerPassword(password)) {
+    res.status(403).json({ success: false, error: "كلمة مرور التحكم غير صحيحة" });
+    return;
+  }
+  const result = settingsService.resetSubscription(days);
+  if (result.success) {
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ success: false, error: result.error });
+  }
+};
+
 export const updateSettings = (req: Request, res: Response) => {
   const settings = req.body;
   const result = settingsService.updateSettings(settings);

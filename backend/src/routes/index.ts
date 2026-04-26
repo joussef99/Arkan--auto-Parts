@@ -9,13 +9,14 @@ import settingsRoutes from "./settings.routes.js";
 
 const router = Router();
 
-// Mount all route modules under /api
-router.use("/auth", authRoutes);
-router.use("/parts", productsRoutes);
-router.use("/customers", customerRoutes);
-router.use("/invoices", invoiceRoutes);
-router.use("/suppliers", supplierRoutes);
-router.use("/financial", financialRoutes);
-router.use("/settings", settingsRoutes);
+// Mount all route modules - server.ts already adds /api prefix
+// So routes here should be at root: /login, /parts, /brands, etc.
+router.use("/", authRoutes);           // → /api/login, /api/users
+router.use("/", productsRoutes);       // → /api/parts, /api/brands, /api/models, /api/categories, /api/year-ranges, /api/inventory/*
+router.use("/", customerRoutes);       // → /api/customers
+router.use("/", invoiceRoutes);        // → /api/invoices
+router.use("/", supplierRoutes);       // → /api/suppliers, /api/purchase-orders, etc.
+router.use("/", financialRoutes);      // → /api/cashbox, /api/bank-accounts, /api/financial-center, /api/reports/*
+router.use("/", settingsRoutes);       // → /api/settings
 
 export default router;

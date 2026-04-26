@@ -1,8 +1,10 @@
-import express, { Application, Request, Response, NextFunction } from "express";
+import express, { Application } from "express";
 import cors from "cors";
 import { initDatabase } from "./config/db.js";
 import routes from "./routes/index.js";
 import env from "./config/env.js";
+import { enforceSubscription } from "./middlewares/subscription.middleware.js";
+import { errorHandler, notFoundHandler } from "./middlewares/error.middleware.js";
 
 const PORT = env.PORT || 5000;
 
@@ -13,23 +15,14 @@ function createApp(): Application {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(enforceSubscription);
 
   // API Routes
   app.use("/api", routes);
 
   // 404 handler for API routes
-  app.use("/api/*", (req: Request, res: Response) => {
-    res.status(404).json({ error: "API endpoint not found" });
-  });
-
-  // Global error handler for API routes
-  app.use("/api", (err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error("API Error:", err);
-    res.status(500).json({ 
-      error: "Internal Server Error", 
-      message: err.message 
-    });
-  });
+  app.use("/api/*", notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }

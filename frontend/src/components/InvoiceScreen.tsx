@@ -144,7 +144,7 @@ export const InvoiceScreen: React.FC<InvoiceScreenProps> = ({
     const date = new Date().toLocaleDateString('ar-LY');
     
     let itemsList = items.map(item => 
-      `• ${item.name} (${item.quantity} × ${item.selling_price}) = ${item.quantity * item.selling_price} د.ل`
+      `• ${item.part_name_ar} (${item.quantity} × ${item.selling_price}) = ${item.quantity * item.selling_price} د.ل`
     ).join('\n');
 
     const summary = `*${shopName}*\n` +
@@ -396,7 +396,7 @@ export const InvoiceScreen: React.FC<InvoiceScreenProps> = ({
                 items.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900">{item.name}</div>
+                      <div className="font-bold text-slate-900">{item.part_name_ar}</div>
                       <div className="text-xs text-slate-500 font-mono">{item.oem_number}</div>
                     </td>
                     <td className="px-6 py-4">
@@ -729,7 +729,7 @@ export const InvoiceScreen: React.FC<InvoiceScreenProps> = ({
             <tbody>
               {items.map((item, idx) => (
                 <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                  <td className="p-4 border border-slate-200 font-bold">{item.name}</td>
+                  <td className="p-4 border border-slate-200 font-bold">{item.part_name_ar}</td>
                   <td className="p-4 border border-slate-200 text-center font-mono">{item.oem_number}</td>
                   <td className="p-4 border border-slate-200 text-center">{item.quantity}</td>
                   <td className="p-4 border border-slate-200 text-center">{item.selling_price}</td>

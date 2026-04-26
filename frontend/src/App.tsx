@@ -109,6 +109,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('sales-center');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{ subscriptionStartDate?: string; subscriptionEndDate?: string } | null>(null);
 
   // Auto-login with default 'arkan' account
   useEffect(() => {
@@ -139,6 +141,29 @@ export default function App() {
     };
     
     autoLogin();
+  }, []);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const res = await fetch('/api/settings/subscription/status');
+        const data = await res.json();
+        if (data?.success && data.data) {
+          const endDate = data.data.subscription_end_date ? new Date(data.data.subscription_end_date).getTime() : 0;
+          const isExpired = !data.data.is_active || (endDate > 0 && endDate < Date.now());
+          setSubscriptionExpired(isExpired);
+          setSubscriptionInfo({
+            subscriptionStartDate: data.data.subscription_start_date,
+            subscriptionEndDate: data.data.subscription_end_date
+          });
+        }
+      } catch {
+        // no-op
+      }
+    };
+    checkSubscription();
+    const timer = setInterval(checkSubscription, 30000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -263,6 +288,47 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <AnimatePresence>
+        {subscriptionExpired && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg rounded-3xl border border-red-200 bg-white p-8 shadow-2xl"
+            >
+              <h3 className="text-2xl font-black text-red-700 mb-3">انتهى الاشتراك</h3>
+              <p className="text-slate-600 mb-4">
+                يجب تمديد الاشتراك للمتابعة واستخدام النظام بشكل كامل.
+              </p>
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between"><span className="text-slate-500">بداية الاشتراك</span><span className="font-bold text-slate-900">{subscriptionInfo?.subscriptionStartDate || '-'}</span></div>
+                <div className="flex items-center justify-between"><span className="text-slate-500">نهاية الاشتراك</span><span className="font-bold text-slate-900">{subscriptionInfo?.subscriptionEndDate || '-'}</span></div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors"
+                >
+                  الذهاب لإعدادات الاشتراك
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
+                >
+                  تسجيل الخروج
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

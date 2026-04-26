@@ -39,6 +39,7 @@ export interface Part {
   category_id: number;
   category_name: string;
   year_range_id?: number;
+  year_range_ids?: number[];
   year_range_label?: string;
   shelf_location_id: string;
   selling_price: number;
@@ -48,11 +49,13 @@ export interface Part {
   price_updated_at?: string;
   quantity: number;
   min_stock_level: number;
+  supplier_id?: number;
   supplier_name?: string;
   manufacturer_code?: string;
   notes?: string;
   keywords?: string;
   image_path?: string;
+  last_updated?: string;
 }
 
 export interface InvoiceItem extends Part {

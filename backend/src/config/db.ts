@@ -63,7 +63,7 @@ export function initDatabase(): Database.Database {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       part_name_ar TEXT NOT NULL,
       oem_number TEXT,
-      barcode TEXT,
+      barcode TEXT UNIQUE,
       brand_id INTEGER,
       model_id INTEGER,
       year_range_id INTEGER,
@@ -485,6 +485,63 @@ function runMigrations(database: Database.Database): void {
   } catch (err) {
     console.error("Error adding discount to invoice_items:", err);
   }
+
+  // Migration for production inventory fields
+  const inventoryColumns = [
+    "description TEXT",
+    "sub_category TEXT",
+    "car_brand TEXT",
+    "car_model TEXT",
+    "compatible_years TEXT DEFAULT '[]'",
+    "supplier_code TEXT",
+    "warehouse_location TEXT",
+    "profit_margin REAL DEFAULT 0",
+    "total_inventory_value REAL DEFAULT 0",
+    "status TEXT DEFAULT 'outOfStock'"
+  ];
+  const partColumns = database.prepare("PRAGMA table_info(parts)").all() as any[];
+  const partColumnNames = partColumns.map((col) => col.name);
+  for (const field of inventoryColumns) {
+    const column = field.split(" ")[0];
+    if (!partColumnNames.includes(column)) {
+      database.exec(`ALTER TABLE parts ADD COLUMN ${field}`);
+    }
+  }
+
+  database.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_parts_barcode_unique ON parts(barcode)");
+  database.exec("CREATE INDEX IF NOT EXISTS idx_parts_status ON parts(status)");
+  database.exec("CREATE INDEX IF NOT EXISTS idx_parts_warehouse_location ON parts(warehouse_location)");
+  database.exec("CREATE INDEX IF NOT EXISTS idx_parts_supplier_code ON parts(supplier_code)");
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS inventory_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      part_id INTEGER NOT NULL,
+      transaction_type TEXT NOT NULL CHECK(transaction_type IN ('add_stock', 'remove_stock', 'adjustment', 'sale', 'purchase', 'audit')),
+      quantity_change INTEGER NOT NULL,
+      quantity_before INTEGER NOT NULL,
+      quantity_after INTEGER NOT NULL,
+      note TEXT,
+      reference_id TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(part_id) REFERENCES parts(id)
+    )
+  `);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS subscription_control (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      subscription_start_date TEXT,
+      subscription_end_date TEXT,
+      is_active INTEGER DEFAULT 1,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  database.exec(`
+    INSERT OR IGNORE INTO subscription_control (id, subscription_start_date, subscription_end_date, is_active)
+    VALUES (1, date('now'), date('now', '+365 day'), 1)
+  `);
 }
 
 function seedData(database: Database.Database): void {
@@ -517,6 +574,12 @@ function seedData(database: Database.Database): void {
       insertSetting.run("invoice_prefix", "ARK");
       insertSetting.run("currency", "د.ل");
       insertSetting.run("min_stock_alert", "5");
+      insertSetting.run("subscription_lock_enabled", "1");
+      insertSetting.run("subscription_controller_password_hash", bcrypt.hashSync("arkan-control", 10));
+    }
+    const controllerPasswordRow = database.prepare("SELECT value FROM settings WHERE key = 'subscription_controller_password_hash'").get() as any;
+    if (!controllerPasswordRow) {
+      database.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run("subscription_controller_password_hash", bcrypt.hashSync("arkan-control", 10));
     }
 
     const brandCount = database.prepare("SELECT count(*) as count FROM brands").get() as { count: number };
@@ -609,14 +672,14 @@ function seedData(database: Database.Database): void {
         .run("arkan", "المدير العام", hashedArkanPassword, ownerRole.id);
     }
 
-    // Ensure arkan user exists with arkan password
+    // Ensure arkan user exists (only create, don't overwrite password on each start)
     const ownerRole = database.prepare("SELECT id FROM roles WHERE name = 'owner'").get() as { id: number };
     if (ownerRole) {
       const arkanUser = database.prepare("SELECT id FROM users WHERE username = 'arkan'").get() as any;
-      const hashedArkanPassword = bcrypt.hashSync("arkan", 10);
       
       if (!arkanUser) {
         const adminUser = database.prepare("SELECT id FROM users WHERE username = 'admin'").get() as any;
+        const hashedArkanPassword = bcrypt.hashSync("arkan", 10);
         if (adminUser) {
           database.prepare("UPDATE users SET username = 'arkan', password = ? WHERE id = ?").run(hashedArkanPassword, adminUser.id);
           console.log("Updated admin user to arkan");
@@ -625,10 +688,8 @@ function seedData(database: Database.Database): void {
             .run("arkan", "المدير العام", hashedArkanPassword, ownerRole.id);
           console.log("Created arkan user");
         }
-      } else {
-        database.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedArkanPassword, arkanUser.id);
-        console.log("Updated arkan user password");
       }
+      // Don't update password on each server start - only on first creation
     }
     
     // Migrate existing plain text passwords

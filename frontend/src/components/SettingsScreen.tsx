@@ -20,7 +20,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Brand, Category, Model } from '../types';
 
-type SettingsTab = 'general' | 'invoice' | 'inventory' | 'categories' | 'vehicles' | 'users' | 'financial';
+type SettingsTab = 'general' | 'invoice' | 'inventory' | 'categories' | 'vehicles' | 'users' | 'financial' | 'subscription';
 
 export const SettingsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -32,6 +32,12 @@ export const SettingsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [subscriptionPassword, setSubscriptionPassword] = useState('');
+  const [extendDays, setExtendDays] = useState(30);
+  const [currentControllerPassword, setCurrentControllerPassword] = useState('');
+  const [newControllerPassword, setNewControllerPassword] = useState('');
+  const [resetDays, setResetDays] = useState(365);
 
   useEffect(() => {
     fetchData();
@@ -40,18 +46,21 @@ export const SettingsScreen: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, catRes, brandRes] = await Promise.all([
+      const [settingsRes, catRes, brandRes, subscriptionRes] = await Promise.all([
         fetch('/api/settings'),
         fetch('/api/categories'),
-        fetch('/api/brands')
+        fetch('/api/brands'),
+        fetch('/api/settings/subscription/status')
       ]);
       const settingsData = await settingsRes.json();
       const catData = await catRes.json();
       const brandData = await brandRes.json();
+      const subscriptionData = await subscriptionRes.json();
       
       setSettings(settingsData || {});
       setCategories(Array.isArray(catData) ? catData : []);
       setBrands(Array.isArray(brandData) ? brandData : []);
+      setSubscription(subscriptionData?.success ? subscriptionData.data : null);
     } catch (error) {
       console.error('Error fetching settings:', error);
       setCategories([]);
@@ -186,6 +195,13 @@ export const SettingsScreen: React.FC = () => {
         >
           <Users size={20} />
           <span>المستخدمين والصلاحيات</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('subscription')}
+          className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all ${activeTab === 'subscription' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-500 hover:bg-slate-100'}`}
+        >
+          <ShieldCheck size={20} />
+          <span>الاشتراك والتحكم</span>
         </button>
       </div>
 
@@ -402,6 +418,170 @@ export const SettingsScreen: React.FC = () => {
             <button onClick={handleSaveSettings} className="mt-8 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center gap-2">
               <Save size={20} /> حفظ التغييرات
             </button>
+          </motion.div>
+        )}
+
+        {activeTab === 'subscription' && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+            <h3 className="text-xl font-black text-slate-900 mb-8 border-b pb-4">إدارة الاشتراك والتحكم</h3>
+
+            <div className="p-6 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold">بداية الاشتراك</span>
+                <span className="font-black text-slate-900">{subscription?.subscription_start_date || '-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold">نهاية الاشتراك</span>
+                <span className="font-black text-slate-900">{subscription?.subscription_end_date || '-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold">الحالة</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${subscription?.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                  {subscription?.is_active ? 'نشط' : 'منتهي'}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-slate-200 bg-white space-y-4">
+              <h4 className="font-black text-slate-800">تمديد الاشتراك (يتطلب كلمة مرور التحكم)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  min={1}
+                  value={extendDays}
+                  onChange={(e) => setExtendDays(Number(e.target.value))}
+                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  placeholder="عدد الأيام"
+                />
+                <input
+                  type="password"
+                  value={subscriptionPassword}
+                  onChange={(e) => setSubscriptionPassword(e.target.value)}
+                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  placeholder="كلمة مرور التحكم"
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/settings/subscription/extend', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ days: extendDays, password: subscriptionPassword })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                      setMessage({ text: data.error || 'فشل تمديد الاشتراك', type: 'error' });
+                      return;
+                    }
+                    setMessage({ text: 'تم تمديد الاشتراك بنجاح', type: 'success' });
+                    setSubscriptionPassword('');
+                    fetchData();
+                  } catch {
+                    setMessage({ text: 'خطأ في الاتصال بالسيرفر', type: 'error' });
+                  } finally {
+                    setTimeout(() => setMessage(null), 3000);
+                  }
+                }}
+                className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all"
+              >
+                تمديد الاشتراك
+              </button>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-slate-200 bg-white space-y-4">
+              <h4 className="font-black text-slate-800">تغيير كلمة مرور التحكم</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="password"
+                  value={currentControllerPassword}
+                  onChange={(e) => setCurrentControllerPassword(e.target.value)}
+                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  placeholder="كلمة المرور الحالية"
+                />
+                <input
+                  type="password"
+                  value={newControllerPassword}
+                  onChange={(e) => setNewControllerPassword(e.target.value)}
+                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  placeholder="كلمة المرور الجديدة"
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/settings/subscription/change-password', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ currentPassword: currentControllerPassword, newPassword: newControllerPassword })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                      setMessage({ text: data.error || 'فشل تغيير كلمة المرور', type: 'error' });
+                      return;
+                    }
+                    setMessage({ text: 'تم تغيير كلمة مرور التحكم بنجاح', type: 'success' });
+                    setCurrentControllerPassword('');
+                    setNewControllerPassword('');
+                  } catch {
+                    setMessage({ text: 'خطأ في الاتصال بالسيرفر', type: 'error' });
+                  } finally {
+                    setTimeout(() => setMessage(null), 3000);
+                  }
+                }}
+                className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all"
+              >
+                تغيير كلمة المرور
+              </button>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-red-200 bg-red-50 space-y-4">
+              <h4 className="font-black text-red-800">إعادة ضبط الاشتراك (تحكم كامل)</h4>
+              <p className="text-sm text-red-700">سيتم تعيين بداية الاشتراك من اليوم مع مدة جديدة بالكامل.</p>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="number"
+                  min={1}
+                  value={resetDays}
+                  onChange={(e) => setResetDays(Number(e.target.value))}
+                  className="px-4 py-3 bg-white border border-red-200 rounded-xl outline-none"
+                  placeholder="مدة الاشتراك الجديدة بالأيام"
+                />
+                <input
+                  type="password"
+                  value={subscriptionPassword}
+                  onChange={(e) => setSubscriptionPassword(e.target.value)}
+                  className="px-4 py-3 bg-white border border-red-200 rounded-xl outline-none"
+                  placeholder="كلمة مرور التحكم"
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/settings/subscription/reset', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ days: resetDays, password: subscriptionPassword })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) {
+                      setMessage({ text: data.error || 'فشل إعادة ضبط الاشتراك', type: 'error' });
+                      return;
+                    }
+                    setMessage({ text: 'تمت إعادة ضبط الاشتراك بنجاح', type: 'success' });
+                    setSubscriptionPassword('');
+                    fetchData();
+                  } catch {
+                    setMessage({ text: 'خطأ في الاتصال بالسيرفر', type: 'error' });
+                  } finally {
+                    setTimeout(() => setMessage(null), 3000);
+                  }
+                }}
+                className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all"
+              >
+                إعادة ضبط الاشتراك
+              </button>
+            </div>
           </motion.div>
         )}
       </div>

@@ -360,7 +360,11 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
           id: invoice.customer_id,
           name: invoice.customer_name,
           phone: invoice.customer_phone,
-          current_balance: 0 // We might need to fetch the real balance if needed
+          customer_type: 'walk-in',
+          credit_limit: 0,
+          current_balance: 0,
+          created_at: '',
+          updated_at: ''
         });
       } else {
         setIsWalkIn(true);
@@ -371,9 +375,9 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
       setInvoiceDiscount(invoice.discount || 0);
       setPaidAmount(invoice.paid_amount || 0);
 
-      // 3. Switch to new sale tab
+      // 3. Switch to review tab to show invoice
       setSelectedInvoice(null);
-      setActiveTab('new');
+      setActiveTab('review');
       showFeedback('تم فتح الفاتورة للتعديل', 'success');
     } catch (error) {
       console.error('Error editing invoice:', error);

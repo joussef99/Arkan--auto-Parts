@@ -1,4 +1,5 @@
 import { getDatabase } from "../config/db.js";
+import bcrypt from "bcryptjs";
 
 class SettingsService {
   getAllSettings(): Record<string, string> {
@@ -41,6 +42,65 @@ class SettingsService {
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
+  }
+
+  getSubscription(): any {
+    const db = getDatabase();
+    return db.prepare("SELECT * FROM subscription_control WHERE id = 1").get();
+  }
+
+  extendSubscription(days: number): { success: boolean; error?: string } {
+    const db = getDatabase();
+    try {
+      db.prepare(`
+        UPDATE subscription_control
+        SET subscription_end_date = date(COALESCE(subscription_end_date, date('now')), ?),
+            is_active = 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `).run(`+${Math.max(1, days)} day`);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  resetSubscription(days = 365): { success: boolean; error?: string } {
+    const db = getDatabase();
+    try {
+      db.prepare(`
+        UPDATE subscription_control
+        SET subscription_start_date = date('now'),
+            subscription_end_date = date('now', ?),
+            is_active = 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `).run(`+${Math.max(1, days)} day`);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  private getControllerPasswordHash(): string | null {
+    return this.getSetting("subscription_controller_password_hash");
+  }
+
+  verifyControllerPassword(password: string): boolean {
+    const hash = this.getControllerPasswordHash();
+    if (!hash || !password) return false;
+    return bcrypt.compareSync(password, hash);
+  }
+
+  changeControllerPassword(currentPassword: string, newPassword: string): { success: boolean; error?: string } {
+    if (!this.verifyControllerPassword(currentPassword)) {
+      return { success: false, error: "كلمة المرور الحالية غير صحيحة" };
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل" };
+    }
+    const hash = bcrypt.hashSync(newPassword, 10);
+    return this.setSetting("subscription_controller_password_hash", hash);
   }
 }
 
