@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Cairo", "Inter", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    "Cairo", "Inter", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -17,4 +18,91 @@ body {
 
 .glass-panel {
   @apply bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm;
+}
+
+/* ============================================
+   Print Styles for Barcode Labels
+   ============================================ */
+@media print {
+  /* Hide everything except print area */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the print area */
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  /* Position print area at top-left */
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Remove backgrounds for cleaner printing */
+  .print-area > div {
+    background: white !important;
+    border: 1px solid #ccc !important;
+  }
+
+  /* Ensure images print correctly */
+  .print-area img {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* A4 Grid Layout */
+  .print-area.grid-cols-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+
+  /* Thermal Single Column */
+  .print-area:not(.grid-cols-3) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* Page break settings */
+  .print-area > div {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Hide non-print elements */
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Remove shadows and borders for cleaner output */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
+
+/* Hide print elements on screen */
+@media screen {
+  .print-only {
+    display: none;
+  }
+}
+
+/* Show print elements only when printing */
+@media print {
+  .print-only {
+    display: block;
+  }
+  .screen-only {
+    display: none;
+  }
 }

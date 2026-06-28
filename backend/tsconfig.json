@@ -5,7 +5,7 @@
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
     "allowJs": true,
-    "outDir": "./dist",
+    "outDir": "node_modules/dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
@@ -14,5 +14,5 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "node_modules/dist"]
 }

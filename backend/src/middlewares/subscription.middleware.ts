@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getDatabase } from "../config/db.js";
 
+// password = arkan-control
 export function enforceSubscription(req: Request, res: Response, next: NextFunction): void {
   if (!req.path.startsWith("/api")) {
     next();

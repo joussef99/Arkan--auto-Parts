@@ -6,6 +6,8 @@ import invoiceRoutes from "./invoice.routes.js";
 import supplierRoutes from "./supplier.routes.js";
 import financialRoutes from "./financial.routes.js";
 import settingsRoutes from "./settings.routes.js";
+import * as barcodeController from "../controllers/barcode.controller.js";
+import * as printController from "../controllers/print.controller.js";
 
 const router = Router();
 
@@ -18,5 +20,15 @@ router.use("/", invoiceRoutes);        // → /api/invoices
 router.use("/", supplierRoutes);       // → /api/suppliers, /api/purchase-orders, etc.
 router.use("/", financialRoutes);      // → /api/cashbox, /api/bank-accounts, /api/financial-center, /api/reports/*
 router.use("/", settingsRoutes);       // → /api/settings
+
+// Barcode generation endpoints
+router.get("/barcode/:code", barcodeController.generateBarcode);
+router.get("/barcode-small/:code", barcodeController.generateSmallBarcode);
+router.get("/test-barcode", barcodeController.testBarcode);
+
+// Print endpoints (ZPL direct thermal printing)
+router.post("/print-labels", printController.printLabels);
+router.get("/print-status/:printerIp", printController.checkPrinter);
+router.post("/print-preview", printController.previewLabels);
 
 export default router;

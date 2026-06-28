@@ -17,6 +17,7 @@ import { SettingsScreen } from './components/SettingsScreen';
 import { CustomersScreen } from './components/CustomersScreen';
 import { FinancialScreen } from './components/FinancialScreen';
 import { QAChecklistScreen } from './components/QAChecklistScreen';
+import { PrintLabels } from './components/PrintLabels';
 import { ClipboardCheck } from 'lucide-react';
 
 // --- Components ---
@@ -44,7 +45,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, isExpanded, setIsExpanded, inn
         if (!isExpanded) setIsExpanded(true);
       }}
     >
-      <div className="p-6 border-b border-slate-800 flex items-center justify-between min-h-[88px]">
+      <div className="p-6 border-b border-slate-800 flex items-center justify-between min-h-22">
         {isExpanded ? (
           <div>
             <h1 className="text-xl font-bold text-emerald-400">أركان لقطع الغيار</h1>
@@ -111,6 +112,7 @@ export default function App() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [subscriptionExpired, setSubscriptionExpired] = useState(false);
   const [subscriptionInfo, setSubscriptionInfo] = useState<{ subscriptionStartDate?: string; subscriptionEndDate?: string } | null>(null);
+  const [showPrintLabels, setShowPrintLabels] = useState(false);
 
   // Auto-login with default 'arkan' account
   useEffect(() => {
@@ -254,7 +256,7 @@ export default function App() {
         user={user} 
         isExpanded={isSidebarExpanded} 
         setIsExpanded={setIsSidebarExpanded}
-        innerRef={sidebarRef}
+        innerRef={sidebarRef as any}
       />
       
       <main className={`flex-1 p-8 transition-all duration-300 ${isSidebarExpanded ? 'mr-64' : 'mr-20'}`}>
@@ -266,6 +268,14 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setShowPrintLabels(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+              title="طباعة الباركود"
+            >
+              <Package size={18} />
+              طباعة الباركود
+            </button>
             <button 
               onClick={handleLogout}
               className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold hover:bg-emerald-200 transition-colors"
@@ -287,6 +297,12 @@ export default function App() {
             {renderContent()}
           </motion.div>
         </AnimatePresence>
+
+        {/* Print Labels Modal */}
+        <PrintLabels 
+          isOpen={showPrintLabels} 
+          onClose={() => setShowPrintLabels(false)} 
+        />
       </main>
 
       <AnimatePresence>
