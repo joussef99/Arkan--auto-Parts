@@ -1,10 +1,10 @@
 /**
- * BarcodeLabel Component
- * Renders a professional barcode label with React/Tailwind
- * Can be converted to image for PDF export
+ * BarcodeLabel Component - Production Quality
+ * Professional ERP/POS barcode label with commercial design
+ * Similar to Odoo, SAP, Zoho Inventory, and Zebra Designer
  */
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { LabelLayoutConfig } from "../../utils/labelLayouts";
 
 export interface BarcodeLabelProps {
@@ -26,7 +26,8 @@ export interface BarcodeLabelProps {
 }
 
 /**
- * Professional barcode label component
+ * Production-quality barcode label component
+ * Optimized for thermal and laser printers
  */
 export const BarcodeLabel: React.FC<BarcodeLabelProps> = ({
   product,
@@ -40,76 +41,139 @@ export const BarcodeLabel: React.FC<BarcodeLabelProps> = ({
   const isArabic = (product.part_name_ar || "").length > 0;
   const direction = isArabic ? "rtl" : "ltr";
 
+  // Calculate spacing proportions
+  const paddingPx = 4; // Equal margins around label
+  const contentWidth = layout.pxWidth - paddingPx * 2;
+  const availableHeight = layout.pxHeight - paddingPx * 2;
+
+  // Allocate space: barcode gets ~65%
+  const barcodeHeight = Math.floor(availableHeight * 0.65);
+  const spacingUnit = Math.floor((availableHeight - barcodeHeight) / 6);
+
   return (
     <div
       className="flex items-center justify-center bg-white overflow-hidden"
       style={{
         width: `${layout.pxWidth}px`,
         height: `${layout.pxHeight}px`,
-        border: isPreview ? "1px solid #d1d5db" : "none",
-        borderRadius: isPreview ? "4px" : "0",
         direction,
       }}
       dir={direction}
     >
-      {/* Label Content Container */}
+      {/* Outer Border Container - 0.3mm light gray border with rounded corners */}
       <div
-        className="w-full h-full flex flex-col items-center justify-between p-2 bg-white border border-gray-300"
+        className="w-full h-full flex items-center justify-center"
         style={{
-          borderRadius: "4px",
+          border: "1px solid #e5e7eb", // Light gray
+          borderRadius: "2px",
+          backgroundColor: "#ffffff",
         }}
       >
-        {/* Top Section: Product Info */}
-        <div className="flex flex-col items-center gap-0.5 shrink-0">
-          {/* Brand (Optional) */}
-          {showBrand && product.brand && (
-            <div className="text-xs font-light text-gray-600 line-clamp-1">
-              {product.brand}
-            </div>
-          )}
+        {/* Inner Content */}
+        <div
+          className="flex flex-col items-center justify-start bg-white"
+          style={{
+            width: contentWidth,
+            height: availableHeight,
+            padding: "0",
+          }}
+        >
+          {/* Top Spacing */}
+          <div style={{ height: spacingUnit * 0.5 }} />
 
-          {/* Product Name (Primary) */}
-          <div className="text-sm font-bold text-gray-900 line-clamp-2 text-center leading-tight max-w-full">
+          {/* Product Name - Single line, smaller, centered */}
+          <div
+            style={{
+              fontFamily: "'Cairo', 'Segoe UI', sans-serif",
+              fontSize: `${Math.max(9, layout.pxWidth / 15)}px`,
+              fontWeight: 600,
+              color: "#1f2937",
+              textAlign: "center",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              letterSpacing: "-0.3px",
+            }}
+          >
             {product.part_name_ar || product.name || "Product"}
           </div>
 
-          {/* OEM (Optional) */}
-          {showOEM && product.oem && (
-            <div className="text-xs text-gray-500 line-clamp-1">
-              {product.oem}
-            </div>
-          )}
-        </div>
+          {/* Spacing after product name */}
+          <div style={{ height: spacingUnit * 0.8 }} />
 
-        {/* Middle Section: Barcode (DOMINANT) */}
-        <div className="flex-1 flex items-center justify-center min-h-0 py-1.5 w-full">
-          {barcodeImage ? (
-            <img
-              src={barcodeImage}
-              alt="barcode"
-              className="max-h-full max-w-full object-contain"
-              style={{
-                filter: "drop-shadow(0 0 0 0)",
-              }}
-            />
-          ) : (
-            <div className="text-xs text-gray-400">[Barcode]</div>
-          )}
-        </div>
+          {/* Barcode Image - 65% of available space */}
+          <div
+            style={{
+              height: barcodeHeight,
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 0,
+            }}
+          >
+            {barcodeImage ? (
+              <img
+                src={barcodeImage}
+                alt="barcode"
+                style={{
+                  maxHeight: "100%",
+                  maxWidth: "100%",
+                  objectFit: "contain",
+                  imageRendering: "crisp-edges",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "#d1d5db",
+                }}
+              >
+                [Barcode]
+              </div>
+            )}
+          </div>
 
-        {/* Bottom Section: Barcode Number & Price */}
-        <div className="flex flex-col items-center gap-1 shrink-0 w-full">
-          {/* Barcode Number */}
-          <div className="text-xs font-mono text-gray-700 text-center line-clamp-1">
+          {/* Spacing after barcode */}
+          <div style={{ height: spacingUnit * 0.8 }} />
+
+          {/* Barcode Number - Monospace font, centered */}
+          <div
+            style={{
+              fontFamily: "'Courier New', monospace",
+              fontSize: `${Math.max(7, layout.pxWidth / 20)}px`,
+              color: "#6b7280",
+              textAlign: "center",
+              letterSpacing: "0.5px",
+              lineHeight: 1,
+            }}
+          >
             {product.barcode || "000000000000"}
           </div>
 
-          {/* Price (Prominent) */}
-          {showPrice && product.selling_price && (
-            <div className="text-lg font-bold text-emerald-600 text-center">
+          {/* Spacing before price */}
+          <div style={{ height: spacingUnit * 0.8 }} />
+
+          {/* Price - Prominent, Cairo Bold, Green (#059669) */}
+          {showPrice && product.selling_price !== undefined && (
+            <div
+              style={{
+                fontFamily: "'Cairo', 'Segoe UI', sans-serif",
+                fontSize: `${Math.max(11, layout.pxWidth / 12)}px`,
+                fontWeight: 700,
+                color: "#059669", // Professional emerald-700
+                textAlign: "center",
+                letterSpacing: "-0.5px",
+              }}
+            >
               {product.selling_price.toFixed(2)} د.ل
             </div>
           )}
+
+          {/* Bottom Padding */}
+          <div style={{ height: spacingUnit * 1.5 }} />
         </div>
       </div>
     </div>
