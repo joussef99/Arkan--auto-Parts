@@ -1,6 +1,7 @@
 /**
  * BarcodePrintPreview Component
  * Main UI for selecting products, configuring labels, and generating PDFs
+ * Uses dynamic layout calculation system
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -18,8 +19,8 @@ import BarcodeLabel from "./BarcodeLabel";
 import LabelGrid from "./LabelGrid";
 import {
   LabelLayoutConfig,
-  getAvailableLayouts,
-  getLabelLayout,
+  calculateLayout,
+  getAvailableLabelSizes,
 } from "../../utils/labelLayouts";
 import { useBarcodePdf } from "../../hooks/useBarcodePdf";
 
@@ -191,7 +192,7 @@ export const BarcodePrintPreview: React.FC<BarcodePrintPreviewProps> = ({
   };
 
   /**
-   * Generate PDF
+   * Generate PDF with dynamic layout
    */
   const handleGeneratePDF = async () => {
     reset();
@@ -211,7 +212,13 @@ export const BarcodePrintPreview: React.FC<BarcodePrintPreviewProps> = ({
       );
     });
 
-    const layout = getLabelLayout(labelSize);
+    // Use dynamic layout calculation
+    const layout = calculateLayout(labelSize, "a4", {
+      pageMarginMm: 10,
+      horizontalGapMm: 3,
+      verticalGapMm: 3,
+    });
+
     await generatePDF(labelElements, layout);
   };
 
@@ -226,7 +233,11 @@ export const BarcodePrintPreview: React.FC<BarcodePrintPreviewProps> = ({
 
   if (!isOpen) return null;
 
-  const layout = getLabelLayout(labelSize);
+  const layout = calculateLayout(labelSize, "a4", {
+    pageMarginMm: 10,
+    horizontalGapMm: 3,
+    verticalGapMm: 3,
+  });
   const allLabels = generateLabels();
   const totalLabels = allLabels.length;
 
@@ -363,9 +374,9 @@ export const BarcodePrintPreview: React.FC<BarcodePrintPreviewProps> = ({
                     onChange={(e) => setLabelSize(e.target.value)}
                     className="w-full px-3 py-2 border rounded text-sm"
                   >
-                    {getAvailableLayouts().map((layout) => (
-                      <option key={layout.id} value={layout.id}>
-                        {layout.nameAr}
+                    {getAvailableLabelSizes().map((size) => (
+                      <option key={size.id} value={size.id}>
+                        {size.nameAr}
                       </option>
                     ))}
                   </select>
@@ -397,10 +408,7 @@ export const BarcodePrintPreview: React.FC<BarcodePrintPreviewProps> = ({
               {/* Stats */}
               <div className="text-sm text-gray-600">
                 {totalLabels} ملصق /{" "}
-                {Math.ceil(
-                  totalLabels / (layout.columnsPerPage * layout.rowsPerPage),
-                )}{" "}
-                صفحة
+                {Math.ceil(totalLabels / layout.labelsPerPage)} صفحة
               </div>
 
               {/* Error */}

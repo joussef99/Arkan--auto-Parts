@@ -1,28 +1,54 @@
 import { Request, Response, NextFunction } from "express";
 import { getDatabase } from "../config/db.js";
 
-// password = arkan-control
-export function enforceSubscription(req: Request, res: Response, next: NextFunction): void {
-  if (!req.path.startsWith("/api")) {
-    next();
-    return;
-  }
+const EXPIRED_ALLOWLIST = new Set([
+  "/login",
+  "/settings/subscription/status",
+  "/settings/subscription/extend",
+]);
 
-  if (req.path === "/api/login" || req.path.startsWith("/api/settings/subscription")) {
+function isDateExpiredUtc(endDateValue: string | null | undefined): boolean {
+  if (!endDateValue) return false;
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  return endDateValue < todayUtc;
+}
+
+export function enforceSubscription(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  const normalizedPath = req.path.startsWith("/api")
+    ? req.path.slice(4)
+    : req.path;
+
+  if (EXPIRED_ALLOWLIST.has(normalizedPath)) {
     next();
     return;
   }
 
   const db = getDatabase();
-  const row = db.prepare("SELECT * FROM subscription_control WHERE id = 1").get() as any;
+  const lockSetting = db
+    .prepare(
+      "SELECT value FROM settings WHERE key = 'subscription_lock_enabled'",
+    )
+    .get() as { value?: string } | undefined;
+
+  if (lockSetting?.value === "0") {
+    next();
+    return;
+  }
+
+  const row = db
+    .prepare("SELECT * FROM subscription_control WHERE id = 1")
+    .get() as any;
   if (!row) {
     next();
     return;
   }
 
-  const endDate = row.subscription_end_date ? new Date(row.subscription_end_date) : null;
-  const now = new Date();
-  const isExpired = row.is_active === 0 || (endDate !== null && endDate.getTime() < now.getTime());
+  const isExpired =
+    row.is_active === 0 || isDateExpiredUtc(row.subscription_end_date);
   if (isExpired) {
     res.status(402).json({
       success: false,
@@ -30,8 +56,8 @@ export function enforceSubscription(req: Request, res: Response, next: NextFunct
       code: "SUBSCRIPTION_EXPIRED",
       data: {
         subscriptionStartDate: row.subscription_start_date,
-        subscriptionEndDate: row.subscription_end_date
-      }
+        subscriptionEndDate: row.subscription_end_date,
+      },
     });
     return;
   }

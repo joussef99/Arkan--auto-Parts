@@ -43,7 +43,8 @@ export const LabelGrid: React.FC<LabelGridProps> = ({
 }) => {
   const labelsPerPage = layout.columnsPerPage * layout.rowsPerPage;
   const pageMarginPx = layout.pageMarginMm * 3.78; // Convert mm to px
-  const labelGapPx = layout.labelGapMm * 3.78;
+  const horizontalGapPx = layout.horizontalGapMm * 3.78;
+  const verticalGapPx = layout.verticalGapMm * 3.78;
 
   // Fill empty slots with placeholders
   const displayLabels = [...labels];
@@ -67,7 +68,8 @@ export const LabelGrid: React.FC<LabelGridProps> = ({
         gridTemplateColumns: `repeat(${layout.columnsPerPage}, 1fr)`,
         gridTemplateRows: `repeat(${layout.rowsPerPage}, 1fr)`,
         padding: `${pageMarginPx}px`,
-        gap: `${labelGapPx}px`,
+        columnGap: `${horizontalGapPx}px`,
+        rowGap: `${verticalGapPx}px`,
         pageBreakAfter: "always",
       }}
     >

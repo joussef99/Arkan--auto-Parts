@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import { getDatabase } from "../config/db.js";
+import { verifyAuthToken } from "../utils/jwt.js";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -14,34 +15,65 @@ export interface AuthRequest extends Request {
   };
 }
 
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+const PUBLIC_AUTH_BYPASS_PATHS = new Set([
+  "/login",
+  "/settings/subscription/status",
+  "/settings/subscription/extend",
+]);
+
+export function authenticate(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (PUBLIC_AUTH_BYPASS_PATHS.has(req.path)) {
+    next();
+    return;
+  }
+
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader) {
     res.status(401).json({ error: "No authorization header provided" });
     return;
   }
 
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) {
+    res.status(401).json({ error: "Authorization must be a Bearer token" });
+    return;
+  }
+
   try {
+    const payload = verifyAuthToken(token);
     const db = getDatabase();
-    const user = db.prepare(`
+    const user = db
+      .prepare(
+        `
       SELECT u.*, r.name as role_name, r.label_ar as role_label
       FROM users u
       JOIN roles r ON u.role_id = r.id
-      WHERE u.username = ? AND u.status = 'active'
-    `).get(authHeader) as any;
+      WHERE u.id = ? AND u.status = 'active'
+    `,
+      )
+      .get(payload.sub) as any;
 
     if (!user) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
     }
 
-    const permissions = db.prepare(`
+    const permissions = db
+      .prepare(
+        `
       SELECT p.name 
       FROM permissions p
       JOIN role_permissions rp ON p.id = rp.permission_id
       WHERE rp.role_id = ?
-    `).all(user.role_id).map((p: any) => p.name);
+    `,
+      )
+      .all(user.role_id)
+      .map((p: any) => p.name);
 
     req.user = {
       id: user.id,
@@ -54,8 +86,8 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     };
 
     next();
-  } catch (error) {
-    next(error);
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token" });
   }
 }
 
@@ -75,7 +107,10 @@ export function requirePermission(permission: string) {
   };
 }
 
-export function verifyPassword(password: string, hashedPassword: string): boolean {
+export function verifyPassword(
+  password: string,
+  hashedPassword: string,
+): boolean {
   return bcrypt.compareSync(password, hashedPassword);
 }
 

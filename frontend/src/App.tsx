@@ -1,46 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ShoppingCart, 
-  Package, 
-  BarChart3, 
-  Settings, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  ShoppingCart,
+  Package,
+  BarChart3,
+  Settings,
   LayoutDashboard,
   ArrowDownUp,
-  Users
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Part, Brand, Category, InvoiceItem, Model, YearRange } from './types';
-import { SalesCenter } from './components/SalesCenter';
-import { InventoryScreen } from './components/InventoryScreen';
-import { ReportsScreen } from './components/ReportsScreen';
-import { SettingsScreen } from './components/SettingsScreen';
-import { CustomersScreen } from './components/CustomersScreen';
-import { FinancialScreen } from './components/FinancialScreen';
-import { QAChecklistScreen } from './components/QAChecklistScreen';
-import { PrintLabels } from './components/PrintLabels';
-import { ClipboardCheck } from 'lucide-react';
+  Users,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Part, Brand, Category, InvoiceItem, Model, YearRange } from "./types";
+import { SalesCenter } from "./components/SalesCenter";
+import { InventoryScreen } from "./components/InventoryScreen";
+import { ReportsScreen } from "./components/ReportsScreen";
+import { SettingsScreen } from "./components/SettingsScreen";
+import { CustomersScreen } from "./components/CustomersScreen";
+import { FinancialScreen } from "./components/FinancialScreen";
+import { QAChecklistScreen } from "./components/QAChecklistScreen";
+import { PrintLabels } from "./components/PrintLabels";
+import { ClipboardCheck } from "lucide-react";
+import { apiFetch, setStoredToken } from "./utils/apiClient";
 
 // --- Components ---
 
-const Sidebar = ({ activeTab, setActiveTab, user, isExpanded, setIsExpanded, innerRef }: { activeTab: string, setActiveTab: (t: string) => void, user: any, isExpanded: boolean, setIsExpanded: (v: boolean) => void, innerRef: React.RefObject<HTMLDivElement> }) => {
+const Sidebar = ({
+  activeTab,
+  setActiveTab,
+  user,
+  isExpanded,
+  setIsExpanded,
+  innerRef,
+}: {
+  activeTab: string;
+  setActiveTab: (t: string) => void;
+  user: any;
+  isExpanded: boolean;
+  setIsExpanded: (v: boolean) => void;
+  innerRef: React.RefObject<HTMLDivElement>;
+}) => {
   const menuItems = [
-    { id: 'sales-center', label: 'مركز المبيعات', icon: ShoppingCart, roles: ['owner', 'salesperson'] },
-    { id: 'inventory', label: 'المخزون', icon: Package, roles: ['owner', 'purchasing', 'salesperson'] },
-    { id: 'financial', label: 'الخزنة والمالية', icon: BarChart3, roles: ['owner', 'accountant'] },
-    { id: 'reports', label: 'التقارير', icon: LayoutDashboard, roles: ['owner'] },
-    { id: 'customers', label: 'الزبائن', icon: Users, roles: ['owner', 'salesperson'] },
-    { id: 'settings', label: 'الإعدادات', icon: Settings, roles: ['owner'] },
-    { id: 'qa-checklist', label: 'فحص الجودة', icon: ClipboardCheck, roles: ['owner'] },
+    {
+      id: "sales-center",
+      label: "مركز المبيعات",
+      icon: ShoppingCart,
+      roles: ["owner", "salesperson"],
+    },
+    {
+      id: "inventory",
+      label: "المخزون",
+      icon: Package,
+      roles: ["owner", "purchasing", "salesperson"],
+    },
+    {
+      id: "financial",
+      label: "الخزنة والمالية",
+      icon: BarChart3,
+      roles: ["owner", "accountant"],
+    },
+    {
+      id: "reports",
+      label: "التقارير",
+      icon: LayoutDashboard,
+      roles: ["owner"],
+    },
+    {
+      id: "customers",
+      label: "الزبائن",
+      icon: Users,
+      roles: ["owner", "salesperson"],
+    },
+    { id: "settings", label: "الإعدادات", icon: Settings, roles: ["owner"] },
+    {
+      id: "qa-checklist",
+      label: "فحص الجودة",
+      icon: ClipboardCheck,
+      roles: ["owner"],
+    },
   ];
 
-  const filteredItems = menuItems.filter(item => 
-    !user || item.roles.includes(user.role_name)
+  const filteredItems = menuItems.filter(
+    (item) => !user || item.roles.includes(user.role_name),
   );
 
   return (
-    <div 
+    <div
       ref={innerRef}
-      className={`h-screen bg-slate-900 text-white flex flex-col fixed right-0 top-0 z-20 transition-all duration-300 overflow-hidden ${isExpanded ? 'w-64' : 'w-20 cursor-pointer'}`}
+      className={`h-screen bg-slate-900 text-white flex flex-col fixed right-0 top-0 z-20 transition-all duration-300 overflow-hidden ${isExpanded ? "w-64" : "w-20 cursor-pointer"}`}
       onClick={() => {
         if (!isExpanded) setIsExpanded(true);
       }}
@@ -48,12 +93,16 @@ const Sidebar = ({ activeTab, setActiveTab, user, isExpanded, setIsExpanded, inn
       <div className="p-6 border-b border-slate-800 flex items-center justify-between min-h-22">
         {isExpanded ? (
           <div>
-            <h1 className="text-xl font-bold text-emerald-400">أركان لقطع الغيار</h1>
+            <h1 className="text-xl font-bold text-emerald-400">
+              أركان لقطع الغيار
+            </h1>
             <p className="text-xs text-slate-400 mt-1">Arkan Parts Desk v2.0</p>
           </div>
         ) : (
           <div className="w-full flex justify-center">
-            <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center font-bold">أ</div>
+            <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center font-bold">
+              أ
+            </div>
           </div>
         )}
       </div>
@@ -65,28 +114,38 @@ const Sidebar = ({ activeTab, setActiveTab, user, isExpanded, setIsExpanded, inn
               e.stopPropagation();
               setActiveTab(item.id);
             }}
-            className={`w-full flex items-center gap-3 py-4 transition-colors ${isExpanded ? 'px-6' : 'px-0 justify-center'} ${
-              activeTab === item.id 
-                ? 'bg-emerald-600 text-white border-r-4 border-emerald-400' 
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            className={`w-full flex items-center gap-3 py-4 transition-colors ${isExpanded ? "px-6" : "px-0 justify-center"} ${
+              activeTab === item.id
+                ? "bg-emerald-600 text-white border-r-4 border-emerald-400"
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
             }`}
             title={!isExpanded ? item.label : undefined}
           >
             <item.icon size={20} className="shrink-0" />
-            {isExpanded && <span className="font-medium whitespace-nowrap">{item.label}</span>}
+            {isExpanded && (
+              <span className="font-medium whitespace-nowrap">
+                {item.label}
+              </span>
+            )}
           </button>
         ))}
       </nav>
       {user && (
         <div className="p-4 border-t border-slate-800 bg-slate-950/50">
-          <div className={`flex items-center ${isExpanded ? 'gap-3' : 'justify-center'}`}>
+          <div
+            className={`flex items-center ${isExpanded ? "gap-3" : "justify-center"}`}
+          >
             <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-sm shrink-0">
               {user.display_name[0]}
             </div>
             {isExpanded && (
               <div className="flex-1 overflow-hidden">
-                <div className="text-sm font-bold truncate">{user.display_name}</div>
-                <div className="text-[10px] text-slate-500">{user.role_label}</div>
+                <div className="text-sm font-bold truncate">
+                  {user.display_name}
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {user.role_label}
+                </div>
               </div>
             )}
           </div>
@@ -101,23 +160,53 @@ const Sidebar = ({ activeTab, setActiveTab, user, isExpanded, setIsExpanded, inn
   );
 };
 
-
 // --- Main App ---
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('sales-center');
+  const [activeTab, setActiveTab] = useState("sales-center");
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [subscriptionExpired, setSubscriptionExpired] = useState(false);
-  const [subscriptionInfo, setSubscriptionInfo] = useState<{ subscriptionStartDate?: string; subscriptionEndDate?: string } | null>(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    subscriptionStartDate?: string;
+    subscriptionEndDate?: string;
+  } | null>(null);
+  const [expiredRenewDays, setExpiredRenewDays] = useState(30);
+  const [expiredRenewPassword, setExpiredRenewPassword] = useState("");
+  const [renewingFromExpiredModal, setRenewingFromExpiredModal] =
+    useState(false);
+  const [expiredModalError, setExpiredModalError] = useState<string | null>(
+    null,
+  );
   const [showPrintLabels, setShowPrintLabels] = useState(false);
+
+  const checkSubscriptionStatus = async () => {
+    try {
+      const res = await apiFetch("/api/settings/subscription/status");
+      const data = await res.json();
+      if (data?.success && data.data) {
+        const endDate = data.data.subscription_end_date
+          ? new Date(data.data.subscription_end_date).getTime()
+          : 0;
+        const isExpired =
+          !data.data.is_active || (endDate > 0 && endDate < Date.now());
+        setSubscriptionExpired(isExpired);
+        setSubscriptionInfo({
+          subscriptionStartDate: data.data.subscription_start_date,
+          subscriptionEndDate: data.data.subscription_end_date,
+        });
+      }
+    } catch {
+      // no-op
+    }
+  };
 
   // Auto-login with default 'arkan' account
   useEffect(() => {
     const autoLogin = async () => {
-      const savedUser = localStorage.getItem('arkan_user');
+      const savedUser = localStorage.getItem("arkan_user");
       if (savedUser) {
         setUser(JSON.parse(savedUser));
         setLoading(false);
@@ -125,118 +214,157 @@ export default function App() {
       }
 
       try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'arkan', password: 'arkan' })
+        const res = await apiFetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: "arkan", password: "arkan" }),
         });
         const data = await res.json();
         if (data.success) {
+          setStoredToken(data.token || null);
           setUser(data.user);
-          localStorage.setItem('arkan_user', JSON.stringify(data.user));
+          localStorage.setItem("arkan_user", JSON.stringify(data.user));
         }
       } catch (err) {
-        console.error('Auto-login failed:', err);
+        console.error("Auto-login failed:", err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     autoLogin();
   }, []);
 
   useEffect(() => {
-    const checkSubscription = async () => {
-      try {
-        const res = await fetch('/api/settings/subscription/status');
-        const data = await res.json();
-        if (data?.success && data.data) {
-          const endDate = data.data.subscription_end_date ? new Date(data.data.subscription_end_date).getTime() : 0;
-          const isExpired = !data.data.is_active || (endDate > 0 && endDate < Date.now());
-          setSubscriptionExpired(isExpired);
-          setSubscriptionInfo({
-            subscriptionStartDate: data.data.subscription_start_date,
-            subscriptionEndDate: data.data.subscription_end_date
-          });
-        }
-      } catch {
-        // no-op
-      }
-    };
-    checkSubscription();
-    const timer = setInterval(checkSubscription, 30000);
+    checkSubscriptionStatus();
+    const timer = setInterval(checkSubscriptionStatus, 30000);
     return () => clearInterval(timer);
   }, []);
 
+  const handleRenewFromExpiredModal = async () => {
+    const days = Number(expiredRenewDays);
+
+    if (!days || days < 1) {
+      setExpiredModalError("أدخل عدد أيام صحيح");
+      return;
+    }
+
+    if (!expiredRenewPassword.trim()) {
+      setExpiredModalError("أدخل كلمة مرور التحكم");
+      return;
+    }
+
+    setRenewingFromExpiredModal(true);
+    setExpiredModalError(null);
+
+    try {
+      const res = await apiFetch("/api/settings/subscription/extend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days, password: expiredRenewPassword }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setExpiredModalError(data.error || "فشل تمديد الاشتراك");
+        return;
+      }
+
+      setExpiredRenewPassword("");
+      setExpiredRenewDays(30);
+      await checkSubscriptionStatus();
+    } catch {
+      setExpiredModalError("خطأ في الاتصال بالسيرفر");
+    } finally {
+      setRenewingFromExpiredModal(false);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
         setIsSidebarExpanded(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const handleLogin = (userData: any) => {
-    setUser(userData);
-    localStorage.setItem('arkan_user', JSON.stringify(userData));
+    const normalizedUser = userData?.user || userData;
+    setStoredToken(userData?.token || null);
+    setUser(normalizedUser);
+    localStorage.setItem("arkan_user", JSON.stringify(normalizedUser));
   };
 
   const handleLogout = () => {
+    setStoredToken(null);
     setUser(null);
-    localStorage.removeItem('arkan_user');
+    localStorage.removeItem("arkan_user");
   };
 
   const handleSaveInvoice = async (invoiceData: any) => {
-    const res = await fetch('/api/invoices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(invoiceData)
+    const res = await apiFetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invoiceData),
     });
     if (res.ok) {
       const data = await res.json();
       return data.id;
     } else {
-      throw new Error('فشل حفظ الفاتورة');
+      throw new Error("فشل حفظ الفاتورة");
     }
   };
 
   const handleSavePart = async (partData: Partial<Part>) => {
     const isUpdate = !!partData.id;
-    const url = isUpdate ? `/api/parts/${partData.id}` : '/api/parts';
-    const method = isUpdate ? 'PUT' : 'POST';
-    
-    const res = await fetch(url, {
+    const url = isUpdate ? `/api/parts/${partData.id}` : "/api/parts";
+    const method = isUpdate ? "PUT" : "POST";
+
+    const res = await apiFetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(partData)
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(partData),
     });
-    
+
     if (!res.ok) {
       const error = await res.json();
-      throw new Error(error.error || (isUpdate ? 'فشل تحديث القطعة' : 'فشل إضافة القطعة'));
+      throw new Error(
+        error.error || (isUpdate ? "فشل تحديث القطعة" : "فشل إضافة القطعة"),
+      );
     }
   };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'sales-center': return <SalesCenter onSave={handleSaveInvoice} />;
-      case 'inventory': return <InventoryScreen onSave={handleSavePart} />;
-      case 'customers': return <CustomersScreen />;
-      case 'financial': return <FinancialScreen />;
-      case 'reports': return <ReportsScreen />;
-      case 'settings': return <SettingsScreen />;
-      case 'qa-checklist': return <QAChecklistScreen />;
-      default: return (
-        <div className="flex flex-col items-center justify-center h-full text-slate-400">
-          <LayoutDashboard size={64} strokeWidth={1} />
-          <p className="mt-4">هذه الوحدة قيد التطوير في النسخة التجريبية</p>
-        </div>
-      );
+      case "sales-center":
+        return <SalesCenter onSave={handleSaveInvoice} />;
+      case "inventory":
+        return <InventoryScreen onSave={handleSavePart} />;
+      case "customers":
+        return <CustomersScreen />;
+      case "financial":
+        return <FinancialScreen />;
+      case "reports":
+        return <ReportsScreen />;
+      case "settings":
+        return <SettingsScreen />;
+      case "qa-checklist":
+        return <QAChecklistScreen />;
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-slate-400">
+            <LayoutDashboard size={64} strokeWidth={1} />
+            <p className="mt-4">هذه الوحدة قيد التطوير في النسخة التجريبية</p>
+          </div>
+        );
     }
   };
 
@@ -250,25 +378,34 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 font-sans" dir="rtl">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        user={user} 
-        isExpanded={isSidebarExpanded} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={user}
+        isExpanded={isSidebarExpanded}
         setIsExpanded={setIsSidebarExpanded}
         innerRef={sidebarRef as any}
       />
-      
-      <main className={`flex-1 p-8 transition-all duration-300 ${isSidebarExpanded ? 'mr-64' : 'mr-20'}`}>
+
+      <main
+        className={`flex-1 p-8 transition-all duration-300 ${isSidebarExpanded ? "mr-64" : "mr-20"}`}
+      >
         <header className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-slate-500 text-sm font-medium">مرحباً {user?.display_name || 'بك'} في نظام أركان</h1>
+            <h1 className="text-slate-500 text-sm font-medium">
+              مرحباً {user?.display_name || "بك"} في نظام أركان
+            </h1>
             <div className="text-slate-900 font-bold">
-              {new Date().toLocaleDateString('ar-LY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString("ar-LY", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setShowPrintLabels(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
               title="طباعة الباركود"
@@ -276,12 +413,12 @@ export default function App() {
               <Package size={18} />
               طباعة الباركود
             </button>
-            <button 
+            <button
               onClick={handleLogout}
               className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold hover:bg-emerald-200 transition-colors"
               title="تسجيل الخروج"
             >
-              {user?.display_name?.[0] || 'م'}
+              {user?.display_name?.[0] || "م"}
             </button>
           </div>
         </header>
@@ -299,9 +436,9 @@ export default function App() {
         </AnimatePresence>
 
         {/* Print Labels Modal */}
-        <PrintLabels 
-          isOpen={showPrintLabels} 
-          onClose={() => setShowPrintLabels(false)} 
+        <PrintLabels
+          isOpen={showPrintLabels}
+          onClose={() => setShowPrintLabels(false)}
         />
       </main>
 
@@ -319,20 +456,60 @@ export default function App() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="w-full max-w-lg rounded-3xl border border-red-200 bg-white p-8 shadow-2xl"
             >
-              <h3 className="text-2xl font-black text-red-700 mb-3">انتهى الاشتراك</h3>
+              <h3 className="text-2xl font-black text-red-700 mb-3">
+                انتهى الاشتراك
+              </h3>
               <p className="text-slate-600 mb-4">
-                يجب تمديد الاشتراك للمتابعة واستخدام النظام بشكل كامل.
+                للاستخدام مجدداً، أدخل مدة جديدة وكلمة مرور التحكم ثم فعّل
+                الاشتراك.
               </p>
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-sm">
-                <div className="flex items-center justify-between"><span className="text-slate-500">بداية الاشتراك</span><span className="font-bold text-slate-900">{subscriptionInfo?.subscriptionStartDate || '-'}</span></div>
-                <div className="flex items-center justify-between"><span className="text-slate-500">نهاية الاشتراك</span><span className="font-bold text-slate-900">{subscriptionInfo?.subscriptionEndDate || '-'}</span></div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">بداية الاشتراك</span>
+                  <span className="font-bold text-slate-900">
+                    {subscriptionInfo?.subscriptionStartDate || "-"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">نهاية الاشتراك</span>
+                  <span className="font-bold text-slate-900">
+                    {subscriptionInfo?.subscriptionEndDate || "-"}
+                  </span>
+                </div>
               </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                <input
+                  type="number"
+                  min={1}
+                  value={expiredRenewDays}
+                  onChange={(e) => setExpiredRenewDays(Number(e.target.value))}
+                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  placeholder="عدد الأيام الجديدة"
+                />
+                <input
+                  type="password"
+                  value={expiredRenewPassword}
+                  onChange={(e) => setExpiredRenewPassword(e.target.value)}
+                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  placeholder="كلمة مرور التحكم"
+                />
+                {expiredModalError && (
+                  <div className="text-sm font-bold text-red-600">
+                    {expiredModalError}
+                  </div>
+                )}
+              </div>
+
               <div className="mt-6 flex gap-3">
                 <button
-                  onClick={() => setActiveTab('settings')}
+                  onClick={handleRenewFromExpiredModal}
+                  disabled={renewingFromExpiredModal}
                   className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors"
                 >
-                  الذهاب لإعدادات الاشتراك
+                  {renewingFromExpiredModal
+                    ? "جاري التفعيل..."
+                    : "تفعيل الاشتراك الآن"}
                 </button>
                 <button
                   onClick={handleLogout}

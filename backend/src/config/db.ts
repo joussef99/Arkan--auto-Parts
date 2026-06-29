@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
+import env from "./env.js";
 
 let db: Database.Database;
 
@@ -16,8 +17,8 @@ export function initDatabase(): Database.Database {
   }
 
   console.log("Starting database initialization...");
-  db = new Database("arkan_parts.db");
-  db.pragma('foreign_keys = ON');
+  db = new Database(env.DB_PATH);
+  db.pragma("foreign_keys = ON");
 
   const tables = [
     `CREATE TABLE IF NOT EXISTS brands (
@@ -288,7 +289,7 @@ export function initDatabase(): Database.Database {
     `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
-    )`
+    )`,
   ];
 
   for (const tableSql of tables) {
@@ -307,34 +308,55 @@ export function initDatabase(): Database.Database {
 
 function runMigrations(database: Database.Database): void {
   // Migration: Ensure new columns exist in parts table
-  const partsTableInfo = database.prepare("PRAGMA table_info(parts)").all() as any[];
+  const partsTableInfo = database
+    .prepare("PRAGMA table_info(parts)")
+    .all() as any[];
   if (partsTableInfo.length > 0) {
-    const columnNames = partsTableInfo.map(c => c.name);
-    
+    const columnNames = partsTableInfo.map((c) => c.name);
+
     if (columnNames.includes("name") && !columnNames.includes("part_name_ar")) {
       database.exec("ALTER TABLE parts RENAME COLUMN name TO part_name_ar");
     }
-    if (columnNames.includes("stock_quantity") && !columnNames.includes("quantity")) {
-      database.exec("ALTER TABLE parts RENAME COLUMN stock_quantity TO quantity");
+    if (
+      columnNames.includes("stock_quantity") &&
+      !columnNames.includes("quantity")
+    ) {
+      database.exec(
+        "ALTER TABLE parts RENAME COLUMN stock_quantity TO quantity",
+      );
     }
-    if (columnNames.includes("shelf_location") && !columnNames.includes("shelf_location_id")) {
-      database.exec("ALTER TABLE parts RENAME COLUMN shelf_location TO shelf_location_id");
+    if (
+      columnNames.includes("shelf_location") &&
+      !columnNames.includes("shelf_location_id")
+    ) {
+      database.exec(
+        "ALTER TABLE parts RENAME COLUMN shelf_location TO shelf_location_id",
+      );
     }
-    if (columnNames.includes("image_url") && !columnNames.includes("image_path")) {
+    if (
+      columnNames.includes("image_url") &&
+      !columnNames.includes("image_path")
+    ) {
       database.exec("ALTER TABLE parts RENAME COLUMN image_url TO image_path");
     }
 
-    const updatedPartsTableInfo = database.prepare("PRAGMA table_info(parts)").all() as any[];
-    const updatedColumnNames = updatedPartsTableInfo.map(c => c.name);
+    const updatedPartsTableInfo = database
+      .prepare("PRAGMA table_info(parts)")
+      .all() as any[];
+    const updatedColumnNames = updatedPartsTableInfo.map((c) => c.name);
 
     if (!updatedColumnNames.includes("manufacturer_code")) {
       database.exec("ALTER TABLE parts ADD COLUMN manufacturer_code TEXT");
     }
     if (!updatedColumnNames.includes("last_purchase_price")) {
-      database.exec("ALTER TABLE parts ADD COLUMN last_purchase_price REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE parts ADD COLUMN last_purchase_price REAL DEFAULT 0",
+      );
     }
     if (!updatedColumnNames.includes("margin_percent")) {
-      database.exec("ALTER TABLE parts ADD COLUMN margin_percent REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE parts ADD COLUMN margin_percent REAL DEFAULT 0",
+      );
     }
     if (!updatedColumnNames.includes("price_updated_at")) {
       database.exec("ALTER TABLE parts ADD COLUMN price_updated_at TEXT");
@@ -349,50 +371,91 @@ function runMigrations(database: Database.Database): void {
       database.exec("ALTER TABLE parts ADD COLUMN cost_price REAL DEFAULT 0");
     }
     if (!updatedColumnNames.includes("created_at")) {
-      database.exec("ALTER TABLE parts ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP");
+      database.exec(
+        "ALTER TABLE parts ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP",
+      );
     }
     if (!updatedColumnNames.includes("updated_at")) {
-      database.exec("ALTER TABLE parts ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP");
+      database.exec(
+        "ALTER TABLE parts ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP",
+      );
     }
   }
 
   // Migration for stock_movements
-  const smTableInfo = database.prepare("PRAGMA table_info(stock_movements)").all() as any[];
+  const smTableInfo = database
+    .prepare("PRAGMA table_info(stock_movements)")
+    .all() as any[];
   if (smTableInfo.length > 0) {
-    const smColumnNames = smTableInfo.map(c => c.name);
-    if (smColumnNames.includes("type") && !smColumnNames.includes("movement_type")) {
-      database.exec("ALTER TABLE stock_movements RENAME COLUMN type TO movement_type");
+    const smColumnNames = smTableInfo.map((c) => c.name);
+    if (
+      smColumnNames.includes("type") &&
+      !smColumnNames.includes("movement_type")
+    ) {
+      database.exec(
+        "ALTER TABLE stock_movements RENAME COLUMN type TO movement_type",
+      );
     }
-    if (smColumnNames.includes("created_at") && !smColumnNames.includes("movement_date")) {
-      database.exec("ALTER TABLE stock_movements RENAME COLUMN created_at TO movement_date");
+    if (
+      smColumnNames.includes("created_at") &&
+      !smColumnNames.includes("movement_date")
+    ) {
+      database.exec(
+        "ALTER TABLE stock_movements RENAME COLUMN created_at TO movement_date",
+      );
     }
     if (!smColumnNames.includes("reference_type")) {
-      database.exec("ALTER TABLE stock_movements ADD COLUMN reference_type TEXT");
+      database.exec(
+        "ALTER TABLE stock_movements ADD COLUMN reference_type TEXT",
+      );
     }
   }
 
   // Migration for suppliers
-  const suppliersTableInfo = database.prepare("PRAGMA table_info(suppliers)").all() as any[];
+  const suppliersTableInfo = database
+    .prepare("PRAGMA table_info(suppliers)")
+    .all() as any[];
   if (suppliersTableInfo.length > 0) {
-    const columnNames = suppliersTableInfo.map(c => c.name);
-    if (columnNames.includes("name") && !columnNames.includes("supplier_name")) {
-      database.exec("ALTER TABLE suppliers RENAME COLUMN name TO supplier_name");
+    const columnNames = suppliersTableInfo.map((c) => c.name);
+    if (
+      columnNames.includes("name") &&
+      !columnNames.includes("supplier_name")
+    ) {
+      database.exec(
+        "ALTER TABLE suppliers RENAME COLUMN name TO supplier_name",
+      );
     }
-    if (columnNames.includes("company") && !columnNames.includes("company_name")) {
-      database.exec("ALTER TABLE suppliers RENAME COLUMN company TO company_name");
+    if (
+      columnNames.includes("company") &&
+      !columnNames.includes("company_name")
+    ) {
+      database.exec(
+        "ALTER TABLE suppliers RENAME COLUMN company TO company_name",
+      );
     }
-    if (columnNames.includes("balance") && !columnNames.includes("current_balance")) {
-      database.exec("ALTER TABLE suppliers RENAME COLUMN balance TO current_balance");
+    if (
+      columnNames.includes("balance") &&
+      !columnNames.includes("current_balance")
+    ) {
+      database.exec(
+        "ALTER TABLE suppliers RENAME COLUMN balance TO current_balance",
+      );
     }
-    
-    const updatedSuppliersInfo = database.prepare("PRAGMA table_info(suppliers)").all() as any[];
-    const updatedColNames = updatedSuppliersInfo.map(c => c.name);
-    
+
+    const updatedSuppliersInfo = database
+      .prepare("PRAGMA table_info(suppliers)")
+      .all() as any[];
+    const updatedColNames = updatedSuppliersInfo.map((c) => c.name);
+
     if (!updatedColNames.includes("opening_balance")) {
-      database.exec("ALTER TABLE suppliers ADD COLUMN opening_balance REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE suppliers ADD COLUMN opening_balance REAL DEFAULT 0",
+      );
     }
     if (!updatedColNames.includes("current_balance")) {
-      database.exec("ALTER TABLE suppliers ADD COLUMN current_balance REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE suppliers ADD COLUMN current_balance REAL DEFAULT 0",
+      );
     }
     if (!updatedColNames.includes("company_name")) {
       database.exec("ALTER TABLE suppliers ADD COLUMN company_name TEXT");
@@ -404,52 +467,86 @@ function runMigrations(database: Database.Database): void {
       database.exec("ALTER TABLE suppliers ADD COLUMN notes TEXT");
     }
     if (!updatedColNames.includes("is_active")) {
-      database.exec("ALTER TABLE suppliers ADD COLUMN is_active INTEGER DEFAULT 1");
+      database.exec(
+        "ALTER TABLE suppliers ADD COLUMN is_active INTEGER DEFAULT 1",
+      );
     }
     if (!updatedColNames.includes("updated_at")) {
-      database.exec("ALTER TABLE suppliers ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP");
+      database.exec(
+        "ALTER TABLE suppliers ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP",
+      );
     }
   }
 
   // Migration for customers
-  const customersTableInfo = database.prepare("PRAGMA table_info(customers)").all() as any[];
+  const customersTableInfo = database
+    .prepare("PRAGMA table_info(customers)")
+    .all() as any[];
   if (customersTableInfo.length > 0) {
-    const columnNames = customersTableInfo.map(c => c.name);
-    if (columnNames.includes("balance") && !columnNames.includes("current_balance")) {
-      database.exec("ALTER TABLE customers RENAME COLUMN balance TO current_balance");
+    const columnNames = customersTableInfo.map((c) => c.name);
+    if (
+      columnNames.includes("balance") &&
+      !columnNames.includes("current_balance")
+    ) {
+      database.exec(
+        "ALTER TABLE customers RENAME COLUMN balance TO current_balance",
+      );
     }
-    
-    const updatedCustomersInfo = database.prepare("PRAGMA table_info(customers)").all() as any[];
-    const updatedColNames = updatedCustomersInfo.map(c => c.name);
-    
+
+    const updatedCustomersInfo = database
+      .prepare("PRAGMA table_info(customers)")
+      .all() as any[];
+    const updatedColNames = updatedCustomersInfo.map((c) => c.name);
+
     if (!updatedColNames.includes("current_balance")) {
-      database.exec("ALTER TABLE customers ADD COLUMN current_balance REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE customers ADD COLUMN current_balance REAL DEFAULT 0",
+      );
     }
     if (!updatedColNames.includes("customer_type")) {
-      database.exec("ALTER TABLE customers ADD COLUMN customer_type TEXT DEFAULT 'walk-in'");
+      database.exec(
+        "ALTER TABLE customers ADD COLUMN customer_type TEXT DEFAULT 'walk-in'",
+      );
     }
     if (!updatedColNames.includes("credit_limit")) {
-      database.exec("ALTER TABLE customers ADD COLUMN credit_limit REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE customers ADD COLUMN credit_limit REAL DEFAULT 0",
+      );
     }
     if (!updatedColNames.includes("updated_at")) {
-      database.exec("ALTER TABLE customers ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP");
+      database.exec(
+        "ALTER TABLE customers ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP",
+      );
     }
   }
 
   // Migration for categories
-  const categoriesTableInfo = database.prepare("PRAGMA table_info(categories)").all() as any[];
+  const categoriesTableInfo = database
+    .prepare("PRAGMA table_info(categories)")
+    .all() as any[];
   if (categoriesTableInfo.length > 0) {
-    const columnNames = categoriesTableInfo.map(c => c.name);
+    const columnNames = categoriesTableInfo.map((c) => c.name);
     if (!columnNames.includes("default_margin")) {
-      database.exec("ALTER TABLE categories ADD COLUMN default_margin REAL DEFAULT 0");
+      database.exec(
+        "ALTER TABLE categories ADD COLUMN default_margin REAL DEFAULT 0",
+      );
     }
   }
 
   // Migration for invoices payment_type constraint
   try {
-    const tableSql = database.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='invoices'").get() as any;
-    if (tableSql && tableSql.sql.includes("CHECK(payment_type IN ('cash', 'credit'))")) {
-      console.log("Migrating invoices table to allow 'transfer' payment_type...");
+    const tableSql = database
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='invoices'",
+      )
+      .get() as any;
+    if (
+      tableSql &&
+      tableSql.sql.includes("CHECK(payment_type IN ('cash', 'credit'))")
+    ) {
+      console.log(
+        "Migrating invoices table to allow 'transfer' payment_type...",
+      );
       database.exec("PRAGMA foreign_keys=off;");
       database.exec("BEGIN TRANSACTION;");
       database.exec(`CREATE TABLE invoices_new (
@@ -478,9 +575,13 @@ function runMigrations(database: Database.Database): void {
   }
 
   try {
-    const tableInfo = database.prepare("PRAGMA table_info(invoice_items)").all() as any[];
-    if (!tableInfo.some(col => col.name === 'discount')) {
-      database.exec("ALTER TABLE invoice_items ADD COLUMN discount REAL DEFAULT 0");
+    const tableInfo = database
+      .prepare("PRAGMA table_info(invoice_items)")
+      .all() as any[];
+    if (!tableInfo.some((col) => col.name === "discount")) {
+      database.exec(
+        "ALTER TABLE invoice_items ADD COLUMN discount REAL DEFAULT 0",
+      );
     }
   } catch (err) {
     console.error("Error adding discount to invoice_items:", err);
@@ -497,9 +598,11 @@ function runMigrations(database: Database.Database): void {
     "warehouse_location TEXT",
     "profit_margin REAL DEFAULT 0",
     "total_inventory_value REAL DEFAULT 0",
-    "status TEXT DEFAULT 'outOfStock'"
+    "status TEXT DEFAULT 'outOfStock'",
   ];
-  const partColumns = database.prepare("PRAGMA table_info(parts)").all() as any[];
+  const partColumns = database
+    .prepare("PRAGMA table_info(parts)")
+    .all() as any[];
   const partColumnNames = partColumns.map((col) => col.name);
   for (const field of inventoryColumns) {
     const column = field.split(" ")[0];
@@ -508,10 +611,31 @@ function runMigrations(database: Database.Database): void {
     }
   }
 
-  database.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_parts_barcode_unique ON parts(barcode)");
+  database.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_parts_barcode_unique ON parts(barcode)",
+  );
   database.exec("CREATE INDEX IF NOT EXISTS idx_parts_status ON parts(status)");
-  database.exec("CREATE INDEX IF NOT EXISTS idx_parts_warehouse_location ON parts(warehouse_location)");
-  database.exec("CREATE INDEX IF NOT EXISTS idx_parts_supplier_code ON parts(supplier_code)");
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_parts_warehouse_location ON parts(warehouse_location)",
+  );
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_parts_supplier_code ON parts(supplier_code)",
+  );
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_invoices_customer_date ON invoices(customer_id, date)",
+  );
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id)",
+  );
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_stock_movements_part_date ON stock_movements(part_id, movement_date)",
+  );
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_payments_customer_date ON payments(customer_id, payment_date)",
+  );
+  database.exec(
+    "CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier_date ON purchase_orders(supplier_id, order_date)",
+  );
 
   database.exec(`
     CREATE TABLE IF NOT EXISTS inventory_transactions (
@@ -546,28 +670,42 @@ function runMigrations(database: Database.Database): void {
 
 function seedData(database: Database.Database): void {
   try {
-    const categoriesCount = database.prepare("SELECT count(*) as count FROM categories").get() as { count: number };
+    const categoriesCount = database
+      .prepare("SELECT count(*) as count FROM categories")
+      .get() as { count: number };
     if (categoriesCount.count === 0) {
-      const insertCat = database.prepare("INSERT INTO categories (name, icon_name, color) VALUES (?, ?, ?)");
+      const insertCat = database.prepare(
+        "INSERT INTO categories (name, icon_name, color) VALUES (?, ?, ?)",
+      );
       const categories = [
         ["نظام التبريد", "Fan", "blue"],
         ["قطع الهيكل", "CarFront", "slate"],
         ["نظام التعليق", "ArrowDownUp", "orange"],
         ["الكهرباء", "Zap", "yellow"],
         ["الفرامل", "CircleStop", "red"],
-        ["المحرك", "Cpu", "emerald"]
+        ["المحرك", "Cpu", "emerald"],
       ];
-      categories.forEach(c => insertCat.run(...c));
+      categories.forEach((c) => insertCat.run(...c));
     } else {
-      const engineCat = database.prepare("SELECT * FROM categories WHERE name = ?").get("المحرك");
+      const engineCat = database
+        .prepare("SELECT * FROM categories WHERE name = ?")
+        .get("المحرك");
       if (!engineCat) {
-        database.prepare("INSERT INTO categories (name, icon_name, color) VALUES (?, ?, ?)").run("المحرك", "Cpu", "emerald");
+        database
+          .prepare(
+            "INSERT INTO categories (name, icon_name, color) VALUES (?, ?, ?)",
+          )
+          .run("المحرك", "Cpu", "emerald");
       }
     }
 
-    const settingsCount = database.prepare("SELECT count(*) as count FROM settings").get() as { count: number };
+    const settingsCount = database
+      .prepare("SELECT count(*) as count FROM settings")
+      .get() as { count: number };
     if (settingsCount.count === 0) {
-      const insertSetting = database.prepare("INSERT INTO settings (key, value) VALUES (?, ?)");
+      const insertSetting = database.prepare(
+        "INSERT INTO settings (key, value) VALUES (?, ?)",
+      );
       insertSetting.run("shop_name", "أركان لقطع الغيار");
       insertSetting.run("shop_phone", "0912345678");
       insertSetting.run("shop_address", "طرابلس، ليبيا");
@@ -575,33 +713,87 @@ function seedData(database: Database.Database): void {
       insertSetting.run("currency", "د.ل");
       insertSetting.run("min_stock_alert", "5");
       insertSetting.run("subscription_lock_enabled", "1");
-      insertSetting.run("subscription_controller_password_hash", bcrypt.hashSync("arkan-control", 10));
+      insertSetting.run(
+        "subscription_controller_password_hash",
+        bcrypt.hashSync("arkan-control", 10),
+      );
     }
-    const controllerPasswordRow = database.prepare("SELECT value FROM settings WHERE key = 'subscription_controller_password_hash'").get() as any;
+    const controllerPasswordRow = database
+      .prepare(
+        "SELECT value FROM settings WHERE key = 'subscription_controller_password_hash'",
+      )
+      .get() as any;
     if (!controllerPasswordRow) {
-      database.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run("subscription_controller_password_hash", bcrypt.hashSync("arkan-control", 10));
+      database
+        .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
+        .run(
+          "subscription_controller_password_hash",
+          bcrypt.hashSync("arkan-control", 10),
+        );
     }
 
-    const brandCount = database.prepare("SELECT count(*) as count FROM brands").get() as { count: number };
+    const brandCount = database
+      .prepare("SELECT count(*) as count FROM brands")
+      .get() as { count: number };
     if (brandCount.count === 0) {
-      const insertBrand = database.prepare("INSERT INTO brands (name, name_en, logo_url) VALUES (?, ?, ?)");
+      const insertBrand = database.prepare(
+        "INSERT INTO brands (name, name_en, logo_url) VALUES (?, ?, ?)",
+      );
       const brands = [
-        ["تويوتا", "Toyota", "https://www.carlogos.org/car-logos/toyota-logo.png"],
-        ["هيونداي", "Hyundai", "https://www.carlogos.org/car-logos/hyundai-logo.png"],
+        [
+          "تويوتا",
+          "Toyota",
+          "https://www.carlogos.org/car-logos/toyota-logo.png",
+        ],
+        [
+          "هيونداي",
+          "Hyundai",
+          "https://www.carlogos.org/car-logos/hyundai-logo.png",
+        ],
         ["كيا", "Kia", "https://www.carlogos.org/car-logos/kia-logo.png"],
-        ["نيسان", "Nissan", "https://www.carlogos.org/car-logos/nissan-logo.png"],
-        ["ميتسوبيشي", "Mitsubishi", "https://www.carlogos.org/car-logos/mitsubishi-logo.png"],
-        ["شيفروليه", "Chevrolet", "https://www.carlogos.org/car-logos/chevrolet-logo.png"],
+        [
+          "نيسان",
+          "Nissan",
+          "https://www.carlogos.org/car-logos/nissan-logo.png",
+        ],
+        [
+          "ميتسوبيشي",
+          "Mitsubishi",
+          "https://www.carlogos.org/car-logos/mitsubishi-logo.png",
+        ],
+        [
+          "شيفروليه",
+          "Chevrolet",
+          "https://www.carlogos.org/car-logos/chevrolet-logo.png",
+        ],
         ["هوندا", "Honda", "https://www.carlogos.org/car-logos/honda-logo.png"],
         ["مازدا", "Mazda", "https://www.carlogos.org/car-logos/mazda-logo.png"],
-        ["سامسونج", "Samsung", "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/1200px-Samsung_Logo.svg.png"],
-        ["سانج يونج", "SsangYong", "https://www.carlogos.org/car-logos/ssangyong-logo.png"],
-        ["جينيسيس", "Genesis", "https://www.carlogos.org/car-logos/genesis-logo.png"],
-        ["دايو", "Daewoo", "https://www.carlogos.org/car-logos/daewoo-logo.png"]
+        [
+          "سامسونج",
+          "Samsung",
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/1200px-Samsung_Logo.svg.png",
+        ],
+        [
+          "سانج يونج",
+          "SsangYong",
+          "https://www.carlogos.org/car-logos/ssangyong-logo.png",
+        ],
+        [
+          "جينيسيس",
+          "Genesis",
+          "https://www.carlogos.org/car-logos/genesis-logo.png",
+        ],
+        [
+          "دايو",
+          "Daewoo",
+          "https://www.carlogos.org/car-logos/daewoo-logo.png",
+        ],
       ];
-      brands.forEach(b => insertBrand.run(...b));
+      brands.forEach((b) => insertBrand.run(...b));
 
-      const insertModel = database.prepare("INSERT INTO models (brand_id, name, name_en) VALUES (?, ?, ?)");
+      const insertModel = database.prepare(
+        "INSERT INTO models (brand_id, name, name_en) VALUES (?, ?, ?)",
+      );
       insertModel.run(1, "كورولا", "Corolla");
       insertModel.run(1, "كامري", "Camry");
       insertModel.run(1, "ياريس", "Yaris");
@@ -617,7 +809,9 @@ function seedData(database: Database.Database): void {
       insertModel.run(12, "نوبيرا", "Nubira");
       insertModel.run(12, "ليجانزا", "Leganza");
 
-      const insertYear = database.prepare("INSERT INTO year_ranges (label, start_year, end_year) VALUES (?, ?, ?)");
+      const insertYear = database.prepare(
+        "INSERT INTO year_ranges (label, start_year, end_year) VALUES (?, ?, ?)",
+      );
       insertYear.run("2008–2011", 2008, 2011);
       insertYear.run("2012–2015", 2012, 2015);
       insertYear.run("2016–2019", 2016, 2019);
@@ -627,26 +821,67 @@ function seedData(database: Database.Database): void {
         INSERT INTO parts (part_name_ar, oem_number, brand_id, model_id, year_range_id, category_id, shelf_location_id, selling_price, quantity, image_path)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      insertPart.run("فلتر زيت", "90915-10001", 1, 1, 2, 1, "A-12", 25, 50, "https://picsum.photos/seed/oilfilter/200/200");
-      insertPart.run("فحمات فرامل أمامية", "58101-1RA00", 2, 5, 3, 5, "B-05", 120, 15, "https://picsum.photos/seed/brakepads/200/200");
-      insertPart.run("رادياتير مياه", "16400-21160", 1, 1, 2, 1, "C-01", 450, 8, "https://picsum.photos/seed/radiator/200/200");
+      insertPart.run(
+        "فلتر زيت",
+        "90915-10001",
+        1,
+        1,
+        2,
+        1,
+        "A-12",
+        25,
+        50,
+        "https://picsum.photos/seed/oilfilter/200/200",
+      );
+      insertPart.run(
+        "فحمات فرامل أمامية",
+        "58101-1RA00",
+        2,
+        5,
+        3,
+        5,
+        "B-05",
+        120,
+        15,
+        "https://picsum.photos/seed/brakepads/200/200",
+      );
+      insertPart.run(
+        "رادياتير مياه",
+        "16400-21160",
+        1,
+        1,
+        2,
+        1,
+        "C-01",
+        450,
+        8,
+        "https://picsum.photos/seed/radiator/200/200",
+      );
 
-      const insertCustomer = database.prepare("INSERT INTO customers (name, phone, current_balance) VALUES (?, ?, ?)");
+      const insertCustomer = database.prepare(
+        "INSERT INTO customers (name, phone, current_balance) VALUES (?, ?, ?)",
+      );
       insertCustomer.run("أحمد محمد", "0912345678", 150);
       insertCustomer.run("سالم علي", "0923456789", 0);
       insertCustomer.run("محمود خالد", "0911112222", 450);
     }
 
     // Seed roles and permissions
-    const rolesCount = database.prepare("SELECT count(*) as count FROM roles").get() as { count: number };
+    const rolesCount = database
+      .prepare("SELECT count(*) as count FROM roles")
+      .get() as { count: number };
     if (rolesCount.count === 0) {
-      const insertRole = database.prepare("INSERT INTO roles (name, label_ar) VALUES (?, ?)");
+      const insertRole = database.prepare(
+        "INSERT INTO roles (name, label_ar) VALUES (?, ?)",
+      );
       insertRole.run("owner", "صاحب النشاط");
       insertRole.run("salesperson", "البائع");
       insertRole.run("accountant", "المحاسب");
       insertRole.run("purchasing", "مسؤول المشتريات");
 
-      const insertPermission = database.prepare("INSERT INTO permissions (name, label_ar, module) VALUES (?, ?, ?)");
+      const insertPermission = database.prepare(
+        "INSERT INTO permissions (name, label_ar, module) VALUES (?, ?, ?)",
+      );
       const permissions = [
         ["sales_create", "إنشاء فاتورة مبيعات", "sales"],
         ["sales_view", "عرض فواتير المبيعات", "sales"],
@@ -658,46 +893,81 @@ function seedData(database: Database.Database): void {
         ["financial_view", "عرض المركز المالي", "financial"],
         ["cashbox_manage", "إدارة الخزنة", "financial"],
         ["settings_manage", "إدارة الإعدادات", "settings"],
-        ["users_manage", "إدارة المستخدمين", "settings"]
+        ["users_manage", "إدارة المستخدمين", "settings"],
       ];
-      permissions.forEach(p => insertPermission.run(...p));
+      permissions.forEach((p) => insertPermission.run(...p));
 
-      const allPermissions = database.prepare("SELECT id FROM permissions").all() as { id: number }[];
-      const ownerRole = database.prepare("SELECT id FROM roles WHERE name = 'owner'").get() as { id: number };
-      const insertRolePermission = database.prepare("INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
-      allPermissions.forEach(p => insertRolePermission.run(ownerRole.id, p.id));
+      const allPermissions = database
+        .prepare("SELECT id FROM permissions")
+        .all() as { id: number }[];
+      const ownerRole = database
+        .prepare("SELECT id FROM roles WHERE name = 'owner'")
+        .get() as { id: number };
+      const insertRolePermission = database.prepare(
+        "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)",
+      );
+      allPermissions.forEach((p) =>
+        insertRolePermission.run(ownerRole.id, p.id),
+      );
 
-      const hashedArkanPassword = bcrypt.hashSync("arkan", 10);
-      database.prepare("INSERT INTO users (username, display_name, password, role_id) VALUES (?, ?, ?, ?)")
-        .run("arkan", "المدير العام", hashedArkanPassword, ownerRole.id);
+      if (env.ENABLE_SEED_DEFAULT_CREDENTIALS) {
+        const hashedArkanPassword = bcrypt.hashSync("arkan", 10);
+        database
+          .prepare(
+            "INSERT INTO users (username, display_name, password, role_id) VALUES (?, ?, ?, ?)",
+          )
+          .run("arkan", "المدير العام", hashedArkanPassword, ownerRole.id);
+      }
     }
 
-    // Ensure arkan user exists (only create, don't overwrite password on each start)
-    const ownerRole = database.prepare("SELECT id FROM roles WHERE name = 'owner'").get() as { id: number };
-    if (ownerRole) {
-      const arkanUser = database.prepare("SELECT id FROM users WHERE username = 'arkan'").get() as any;
-      
+    // Ensure arkan user exists for development bootstrap.
+    const ownerRole = database
+      .prepare("SELECT id FROM roles WHERE name = 'owner'")
+      .get() as { id: number };
+    if (ownerRole && env.ENABLE_SEED_DEFAULT_CREDENTIALS) {
+      const arkanUser = database
+        .prepare("SELECT id FROM users WHERE username = 'arkan'")
+        .get() as any;
+
       if (!arkanUser) {
-        const adminUser = database.prepare("SELECT id FROM users WHERE username = 'admin'").get() as any;
+        const adminUser = database
+          .prepare("SELECT id FROM users WHERE username = 'admin'")
+          .get() as any;
         const hashedArkanPassword = bcrypt.hashSync("arkan", 10);
         if (adminUser) {
-          database.prepare("UPDATE users SET username = 'arkan', password = ? WHERE id = ?").run(hashedArkanPassword, adminUser.id);
+          database
+            .prepare(
+              "UPDATE users SET username = 'arkan', password = ? WHERE id = ?",
+            )
+            .run(hashedArkanPassword, adminUser.id);
           console.log("Updated admin user to arkan");
         } else {
-          database.prepare("INSERT INTO users (username, display_name, password, role_id) VALUES (?, ?, ?, ?)")
+          database
+            .prepare(
+              "INSERT INTO users (username, display_name, password, role_id) VALUES (?, ?, ?, ?)",
+            )
             .run("arkan", "المدير العام", hashedArkanPassword, ownerRole.id);
           console.log("Created arkan user");
         }
+      } else {
+        // Development convenience: keep default bootstrap password consistent.
+        const hashedArkanPassword = bcrypt.hashSync("arkan", 10);
+        database
+          .prepare("UPDATE users SET password = ? WHERE id = ?")
+          .run(hashedArkanPassword, arkanUser.id);
       }
-      // Don't update password on each server start - only on first creation
     }
-    
-    // Migrate existing plain text passwords
-    const users = database.prepare("SELECT id, password FROM users").all() as any[];
+
+    // Migrate only true plain-text passwords. Accept bcrypt prefixes 2a/2b/2y.
+    const users = database
+      .prepare("SELECT id, password FROM users")
+      .all() as any[];
     for (const user of users) {
-      if (!user.password.startsWith("$2a$")) {
+      if (!/^\$2[aby]\$/.test(String(user.password || ""))) {
         const hashed = bcrypt.hashSync(user.password, 10);
-        database.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashed, user.id);
+        database
+          .prepare("UPDATE users SET password = ? WHERE id = ?")
+          .run(hashed, user.id);
         console.log("Migrated password for user", user.id);
       }
     }

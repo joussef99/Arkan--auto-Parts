@@ -23,7 +23,9 @@ export const extendSubscription = (req: Request, res: Response) => {
   const days = Number(req.body?.days || 30);
   const password = String(req.body?.password || "");
   if (!settingsService.verifyControllerPassword(password)) {
-    res.status(403).json({ success: false, error: "كلمة مرور التحكم غير صحيحة" });
+    res
+      .status(403)
+      .json({ success: false, error: "كلمة مرور التحكم غير صحيحة" });
     return;
   }
   const result = settingsService.extendSubscription(days);
@@ -34,10 +36,16 @@ export const extendSubscription = (req: Request, res: Response) => {
   }
 };
 
-export const changeSubscriptionControllerPassword = (req: Request, res: Response) => {
+export const changeSubscriptionControllerPassword = (
+  req: Request,
+  res: Response,
+) => {
   const currentPassword = String(req.body?.currentPassword || "");
   const newPassword = String(req.body?.newPassword || "");
-  const result = settingsService.changeControllerPassword(currentPassword, newPassword);
+  const result = settingsService.changeControllerPassword(
+    currentPassword,
+    newPassword,
+  );
   if (result.success) {
     res.json({ success: true });
   } else {
@@ -47,14 +55,18 @@ export const changeSubscriptionControllerPassword = (req: Request, res: Response
 
 export const resetSubscription = (req: Request, res: Response) => {
   const password = String(req.body?.password || "");
-  const days = Number(req.body?.days || 365);
   if (!settingsService.verifyControllerPassword(password)) {
-    res.status(403).json({ success: false, error: "كلمة مرور التحكم غير صحيحة" });
+    res
+      .status(403)
+      .json({ success: false, error: "كلمة مرور التحكم غير صحيحة" });
     return;
   }
-  const result = settingsService.resetSubscription(days);
+  const result = settingsService.resetSubscription();
   if (result.success) {
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: "تم إنهاء الاشتراك فوراً. يرجى تجديد الاشتراك لفترة جديدة.",
+    });
   } else {
     res.status(500).json({ success: false, error: result.error });
   }

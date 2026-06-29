@@ -49,3 +49,41 @@ npm run build
 ```
 
 The built files will be in `frontend/dist/`.
+
+## Electron Desktop (Windows ERP)
+
+The app now supports a full Electron desktop runtime while preserving existing business logic.
+
+### Desktop Development
+
+```bash
+npm install
+npm run dev
+```
+
+This starts:
+
+- Vite renderer on `http://127.0.0.1:3000`
+- Electron main process
+- Embedded backend process (auto-started by Electron)
+
+### Desktop Database Location
+
+In desktop mode, SQLite is stored in Electron user data:
+
+`%AppData%/Arkan Auto Parts ERP/database.db`
+
+Backups are stored in:
+
+`%AppData%/Arkan Auto Parts ERP/Backups`
+
+### Build Installer + Portable
+
+```bash
+npm run dist:win
+```
+
+Outputs are generated in `release/`:
+
+- `Arkan-Auto-Parts-ERP-Setup-<version>.exe`
+- `Arkan-Auto-Parts-ERP-Portable-<version>.exe`

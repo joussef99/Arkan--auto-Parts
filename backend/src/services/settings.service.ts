@@ -12,10 +12,15 @@ class SettingsService {
     return settings;
   }
 
-  updateSettings(settings: Record<string, any>): { success: boolean; error?: string } {
+  updateSettings(settings: Record<string, any>): {
+    success: boolean;
+    error?: string;
+  } {
     const db = getDatabase();
     try {
-      const upsert = db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)");
+      const upsert = db.prepare(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      );
       const transaction = db.transaction(() => {
         for (const [key, value] of Object.entries(settings)) {
           upsert.run(key, String(value));
@@ -30,14 +35,18 @@ class SettingsService {
 
   getSetting(key: string): string | null {
     const db = getDatabase();
-    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined;
+    const row = db
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .get(key) as { value: string } | undefined;
     return row?.value || null;
   }
 
   setSetting(key: string, value: string): { success: boolean; error?: string } {
     const db = getDatabase();
     try {
-      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(key, value);
+      db.prepare(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      ).run(key, value);
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -52,30 +61,41 @@ class SettingsService {
   extendSubscription(days: number): { success: boolean; error?: string } {
     const db = getDatabase();
     try {
-      db.prepare(`
+      const subscription = this.getSubscription() as
+        | { subscription_end_date?: string | null }
+        | undefined;
+      const today = new Date().toISOString().slice(0, 10);
+      const currentEnd = subscription?.subscription_end_date || null;
+      const baseline = currentEnd && currentEnd >= today ? currentEnd : today;
+
+      db.prepare(
+        `
         UPDATE subscription_control
-        SET subscription_end_date = date(COALESCE(subscription_end_date, date('now')), ?),
+        SET subscription_end_date = date(?, ?),
             is_active = 1,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = 1
-      `).run(`+${Math.max(1, days)} day`);
+      `,
+      ).run(baseline, `+${Math.max(1, days)} day`);
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
     }
   }
 
-  resetSubscription(days = 365): { success: boolean; error?: string } {
+  resetSubscription(): { success: boolean; error?: string } {
     const db = getDatabase();
     try {
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE subscription_control
         SET subscription_start_date = date('now'),
-            subscription_end_date = date('now', ?),
-            is_active = 1,
+            subscription_end_date = date('now'),
+            is_active = 0,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = 1
-      `).run(`+${Math.max(1, days)} day`);
+      `,
+      ).run();
       return { success: true };
     } catch (error) {
       return { success: false, error: (error as Error).message };
@@ -92,12 +112,18 @@ class SettingsService {
     return bcrypt.compareSync(password, hash);
   }
 
-  changeControllerPassword(currentPassword: string, newPassword: string): { success: boolean; error?: string } {
+  changeControllerPassword(
+    currentPassword: string,
+    newPassword: string,
+  ): { success: boolean; error?: string } {
     if (!this.verifyControllerPassword(currentPassword)) {
       return { success: false, error: "كلمة المرور الحالية غير صحيحة" };
     }
     if (!newPassword || newPassword.length < 6) {
-      return { success: false, error: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل" };
+      return {
+        success: false,
+        error: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل",
+      };
     }
     const hash = bcrypt.hashSync(newPassword, 10);
     return this.setSetting("subscription_controller_password_hash", hash);

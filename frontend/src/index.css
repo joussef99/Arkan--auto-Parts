@@ -16,6 +16,138 @@ body {
   @apply bg-slate-50 text-slate-900;
 }
 
+/* ============================================
+   Reports Print Styles
+   ============================================ */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    direction: rtl;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-family: "Cairo", "Noto Sans Arabic", sans-serif !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide global app chrome and non-report UI */
+  body > div#root > div > div:first-child,
+  .print-hidden,
+  .no-print,
+  button,
+  nav,
+  aside,
+  input,
+  select,
+  textarea,
+  [role="search"],
+  [aria-label*="بحث"],
+  [aria-label*="search"] {
+    display: none !important;
+  }
+
+  body > div#root > div {
+    display: block !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+  }
+
+  body > div#root > div > main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .reports-print-root {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    break-inside: auto;
+  }
+
+  .reports-print-root .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .reports-print-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 5mm;
+    margin-bottom: 6mm;
+  }
+
+  .reports-print-section {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  /* Keep KPI cards, chart panels, and tables intact */
+  .reports-print-root article,
+  .reports-print-root table,
+  .reports-print-root thead,
+  .reports-print-root tbody,
+  .reports-print-root tr,
+  .reports-print-root .rounded-3xl,
+  .reports-print-root .rounded-2xl,
+  .reports-print-root .rounded-xl,
+  .reports-print-root .recharts-wrapper,
+  .reports-print-root svg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .reports-print-root table {
+    width: 100% !important;
+    border-collapse: collapse;
+  }
+
+  .reports-print-root thead {
+    display: table-header-group;
+  }
+
+  .reports-print-root th,
+  .reports-print-root td {
+    vertical-align: top;
+  }
+
+  /* Remove shadows for crisp paper output while preserving colors */
+  .reports-print-root * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
+
+/* On-screen print preview mode for reports */
+body.reports-preview-mode {
+  background: #e2e8f0;
+}
+
+body.reports-preview-mode .reports-print-root {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 12mm;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  border-radius: 8px;
+}
+
+body.reports-preview-mode .reports-print-root .print-avoid-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 .glass-panel {
   @apply bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm;
 }
@@ -104,5 +236,13 @@ body {
   }
   .screen-only {
     display: none;
+  }
+}
+
+/* Ensure reports remain visible when other print modes hide body content */
+@media print {
+  .reports-print-root,
+  .reports-print-root * {
+    visibility: visible;
   }
 }

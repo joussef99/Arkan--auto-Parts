@@ -39,6 +39,8 @@ type ReportTab =
   | "supplier_debts"
   | "inventory";
 
+type PrintOrientation = "portrait" | "landscape";
+
 export const ReportsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReportTab>("dashboard");
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,55 @@ export const ReportsScreen: React.FC = () => {
   });
   const [reportData, setReportData] = useState<any>(null);
   const [fetchingReport, setFetchingReport] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [printDate, setPrintDate] = useState("");
+  const [printPreview, setPrintPreview] = useState(false);
+  const [printOrientation, setPrintOrientation] =
+    useState<PrintOrientation>("portrait");
+
+  const formatPrintDate = (value: Date) =>
+    new Intl.DateTimeFormat("ar-LY", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(value);
+
+  const getActiveTabLabel = (tab: ReportTab) => {
+    const labels: Record<ReportTab, string> = {
+      dashboard: "لوحة التقارير",
+      sales: "تقرير المبيعات",
+      profit: "تقرير الأرباح",
+      customer_debts: "ديون العملاء",
+      supplier_debts: "ديون الموردين",
+      inventory: "تقرير المخزون",
+    };
+
+    return labels[tab];
+  };
+
+  const getPrintRangeLabel = () => {
+    if (!["sales", "profit"].includes(activeTab)) {
+      return "النطاق: البيانات الحالية";
+    }
+
+    return `النطاق: من ${dateRange.start} إلى ${dateRange.end}`;
+  };
+
+  const applyPrintPageStyle = (orientation: PrintOrientation) => {
+    const styleId = "reports-print-page-style";
+    const existing = document.getElementById(styleId);
+    const css = `@page { size: A4 ${orientation}; margin: 12mm; }`;
+
+    if (existing) {
+      existing.textContent = css;
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = css;
+    document.head.appendChild(style);
+  };
 
   useEffect(() => {
     fetchDashboard();
@@ -107,7 +158,46 @@ export const ReportsScreen: React.FC = () => {
     }
   }, [activeTab, dateRange]);
 
+  useEffect(() => {
+    document.body.classList.toggle("reports-preview-mode", printPreview);
+
+    return () => {
+      document.body.classList.remove("reports-preview-mode");
+    };
+  }, [printPreview]);
+
   const handlePrint = () => window.print();
+
+  const handleExportPdf = async () => {
+    if (exportingPdf) {
+      return;
+    }
+
+    setExportingPdf(true);
+
+    try {
+      applyPrintPageStyle(printOrientation);
+      setPrintDate(formatPrintDate(new Date()));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+
+      if ("fonts" in document) {
+        await document.fonts.ready;
+      }
+
+      // Give charts a final paint pass before opening print dialog.
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 250));
+      document.body.classList.add("reports-printing");
+      window.print();
+    } catch (error) {
+      console.error("Error preparing report print:", error);
+      alert("تعذر تجهيز التقرير للطباعة. يرجى المحاولة مرة أخرى.");
+    } finally {
+      document.body.classList.remove("reports-printing");
+      setExportingPdf(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -127,14 +217,49 @@ export const ReportsScreen: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 pb-12 print:p-0">
+    <div className="reports-print-root space-y-6 pb-12 print:p-0">
+      <div className="reports-print-header">
+        <div>
+          <h1 className="text-xl font-black text-slate-900">تقرير الإدارة</h1>
+          <p className="text-xs text-slate-500">
+            نظام أركان - {getActiveTabLabel(activeTab)}
+          </p>
+          <p className="text-xs text-slate-500 mt-1">{getPrintRangeLabel()}</p>
+        </div>
+        <div className="text-xs text-slate-600">
+          التاريخ: {printDate || formatPrintDate(new Date())}
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex justify-between items-center print:hidden">
+      <div className="flex justify-between items-center print:hidden print-hidden">
         <div>
           <h2 className="text-2xl font-black text-slate-900">التقارير</h2>
           <p className="text-slate-500">متابعة أداء المحل والعمليات المالية</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => setPrintPreview((prev) => !prev)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <FileText size={18} />
+            {printPreview ? "إلغاء المعاينة" : "معاينة الطباعة"}
+          </button>
+
+          <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl">
+            <span className="text-xs font-bold text-slate-500">اتجاه</span>
+            <select
+              value={printOrientation}
+              onChange={(e) =>
+                setPrintOrientation(e.target.value as PrintOrientation)
+              }
+              className="text-sm font-bold text-slate-700 bg-transparent outline-none"
+            >
+              <option value="portrait">A4 عمودي</option>
+              <option value="landscape">A4 أفقي</option>
+            </select>
+          </div>
+
           <button
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-colors"
@@ -142,15 +267,19 @@ export const ReportsScreen: React.FC = () => {
             <Printer size={18} />
             طباعة
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+          <button
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
             <Download size={18} />
-            تصدير PDF
+            {exportingPdf ? "جاري التصدير..." : "تصدير PDF"}
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 print:hidden">
+      <div className="flex gap-2 overflow-x-auto pb-2 print:hidden print-hidden">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -174,7 +303,7 @@ export const ReportsScreen: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-8"
+            className="space-y-8 reports-print-section"
           >
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -218,7 +347,7 @@ export const ReportsScreen: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Sales Trend Placeholder or Top Selling */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 print-avoid-break">
                 <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
                   <TrendingUp size={20} className="text-emerald-500" />
                   الأكثر مبيعاً
@@ -229,7 +358,7 @@ export const ReportsScreen: React.FC = () => {
               </div>
 
               {/* Stock Alerts */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 print-avoid-break">
                 <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
                   <AlertTriangle size={20} className="text-orange-500" />
                   تنبيهات المخزون
@@ -246,11 +375,11 @@ export const ReportsScreen: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-6"
+            className="space-y-6 reports-print-section"
           >
             {/* Date Filters for specific reports */}
             {["sales", "profit"].includes(activeTab) && (
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap gap-4 items-end print:hidden">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap gap-4 items-end print:hidden print-hidden">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500">
                     من تاريخ
@@ -324,7 +453,7 @@ export const ReportsScreen: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
               </div>
             ) : (
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 min-h-100">
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 min-h-100 print-avoid-break">
                 {activeTab === "sales" && <SalesReport data={reportData} />}
                 {activeTab === "profit" && <ProfitReport data={reportData} />}
                 {activeTab === "customer_debts" && (

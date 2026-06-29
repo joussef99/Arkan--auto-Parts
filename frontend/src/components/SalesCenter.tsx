@@ -48,6 +48,7 @@ import {
 import { AddCustomerModal } from "./AddCustomerModal";
 import { toJpeg } from "html-to-image";
 import jsPDF from "jspdf";
+import { printCurrentWindow, savePdfBytes } from "../utils/desktopApi";
 
 interface SalesCenterProps {
   onSave: (invoiceData: any) => Promise<void>;
@@ -208,7 +209,7 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
   useEffect(() => {
     fetch("/api/brands")
       .then((res) => res.json())
-      .then(setBrands)
+      .then((data) => setBrands(Array.isArray(data) ? data : []))
       .catch(() => setBrands([]));
   }, []);
 
@@ -240,7 +241,8 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
     if (customerSearchQuery.length > 1) {
       fetch(`/api/customers?q=${customerSearchQuery}`)
         .then((res) => res.json())
-        .then(setCustomers);
+        .then((data) => setCustomers(Array.isArray(data) ? data : []))
+        .catch(() => setCustomers([]));
     }
   }, [customerSearchQuery]);
 
@@ -248,7 +250,8 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
     if (activeView === "history") {
       fetch("/api/invoices")
         .then((res) => res.json())
-        .then(setPreviousInvoices);
+        .then((data) => setPreviousInvoices(Array.isArray(data) ? data : []))
+        .catch(() => setPreviousInvoices([]));
     }
   }, [activeView]);
 
@@ -351,7 +354,8 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
       const pdfWidth = doc.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       doc.addImage(dataUrl, "JPEG", 0, 0, pdfWidth, pdfHeight);
-      doc.save(`Invoice-${invoiceNumber}.pdf`);
+      const bytes = new Uint8Array(doc.output("arraybuffer"));
+      await savePdfBytes(bytes, `Invoice-${invoiceNumber}.pdf`);
     } catch (err) {
       console.error("PDF Export Error:", err);
       alert("حدث خطأ أثناء حفظ PDF");
@@ -359,26 +363,10 @@ export const SalesCenter: React.FC<SalesCenterProps> = ({ onSave }) => {
   };
 
   const handlePrint = () => {
-    if (!invoiceRef.current) return;
-    try {
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) throw new Error("تعذر فتح الطباعة");
-      printWindow.document.write(`
-        <html dir="rtl"><head><title>طباعة الفاتورة</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-          body { font-family: 'Cairo', sans-serif; padding: 20px; color: #000; }
-          * { box-sizing: border-box; }
-          @media print { body { padding: 0; } @page { margin: 1cm; } }
-        </style></head><body>${invoiceRef.current.innerHTML}
-        <script>window.onload=()=>{setTimeout(()=>{window.print();window.close();},500);}</script>
-        </body></html>
-      `);
-      printWindow.document.close();
-    } catch (error) {
+    void printCurrentWindow().catch((error) => {
       console.error("Print Error:", error);
       alert("تعذر فتح الطباعة");
-    }
+    });
   };
 
   // --- Product Card Component (REDESIGNED & MODERN) ---
